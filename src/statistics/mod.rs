@@ -26,6 +26,10 @@ use super::units::Float;
 /// ```
 #[inline]
 pub fn mean<F: Float>(list: &[F]) -> F {
+    #[expect(
+        clippy::cast_precision_loss,
+        reason = "I can't think of another way to do this"
+    )]
     list.iter()
         .map(Float::get)
         .sum::<f64>()
@@ -60,6 +64,10 @@ pub fn mean<F: Float>(list: &[F]) -> F {
 pub fn stddev<F: Float>(list: &[F]) -> F {
     let mean = mean(list).get();
 
+    #[expect(
+        clippy::cast_precision_loss,
+        reason = "I can't think of another way to do this"
+    )]
     (1.0 / ((list.len() - 1) as f64)
         * list
             .iter()

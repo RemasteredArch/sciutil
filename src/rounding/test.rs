@@ -103,7 +103,7 @@ fn digit_slice_add() {
 
 #[test]
 fn to_from_digit_slice() {
-    assert_eq!(u32::from(SLICE_102405), 102405);
+    assert_eq!(u32::from(SLICE_102405), 102_405);
 }
 
 #[test]
@@ -228,11 +228,11 @@ fn round_to() {
 #[test]
 fn round_with_uncertainty() {
     assert_eq!(
-        rounding::round_with_uncertainty(1024.05, 0.015555312, "g"),
+        rounding::round_with_uncertainty(1_024.05, 0.015_555_312, "g"),
         "1024.05 g ± 0.016 g"
     );
     assert_eq!(
-        rounding::round_with_uncertainty(1024.0511231255, 0.015555312, "g"),
+        rounding::round_with_uncertainty(1_024.051_123_125_5, 0.015_555_312, "g"),
         "1024.051 g ± 0.016 g"
-    )
+    );
 }
