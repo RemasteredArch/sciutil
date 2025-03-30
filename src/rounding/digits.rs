@@ -6,8 +6,6 @@
 // copy of the Mozilla Public License was not distributed with this file, You can obtain one at
 // <https://mozilla.org/MPL/2.0/>.
 
-#![allow(dead_code)]
-
 use std::{
     fmt::Display,
     num::{FpCategory, NonZeroIsize},
@@ -41,6 +39,7 @@ impl Digit {
     const ZERO: Self = Self(0);
     const ONE: Self = Self(1);
 
+    /// Creates a new [`Self`], checking that it is valid.
     pub fn new(digit: u8) -> Option<Self> {
         if (Self::MIN..=Self::MAX).contains(&digit) {
             return Some(Self(digit));
@@ -49,11 +48,16 @@ impl Digit {
         None
     }
 
-    #[cfg(test)]
-    pub const unsafe fn new_raw(digit: u8) -> Self {
+    /// Creates a new [`Self`] without checking that it is from zero to nine.
+    ///
+    /// # Safety
+    ///
+    /// Assumes that `0 <= digit <= 9`.
+    pub const unsafe fn new_unchecked(digit: u8) -> Self {
         Self(digit)
     }
 
+    /// Gets the internal representation of [`Self`] as a [`u8`].
     pub fn get(&self) -> u8 {
         self.0
     }
@@ -93,14 +97,26 @@ impl From<Digit> for char {
     }
 }
 
+impl Display for Digit {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", char::from(*self))
+    }
+}
+
+/// Represents an unsigned integer number as a slice of [`Digit`]s.
+///
+/// Mostly intended for use in intermediate steps when working with [`Digits`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct DigitSlice<'a>(&'a [Digit]);
 
 impl<'a> DigitSlice<'a> {
+    /// Constructs a new instance of [`Self`].
     pub const fn new(digits: &'a [Digit]) -> Self {
         Self(digits)
     }
 
+    /// Treats [`Self`] as a [`u32`], adds another [`u32`], then converts back to a (boxed) slice
+    /// of [`Digit`]s. This may cause the slice to grow in length.
     pub fn add(&self, value: u32) -> Box<[Digit]> {
         // This could be more efficient, but whatever.
         (u32::from(self) + value)
@@ -110,10 +126,12 @@ impl<'a> DigitSlice<'a> {
             .collect()
     }
 
+    /// Gets the interal slice representation of [`Self`].
     pub fn get(&self) -> &'a [Digit] {
         self.0
     }
 
+    /// Converts [`Self`] to a boxed slice of [`Digit`]s.
     pub fn into_boxed(self) -> Box<[Digit]> {
         self.0.to_vec().into_boxed_slice()
     }
@@ -153,7 +171,9 @@ pub struct Digits {
     /// The digit index that the dot is placed before.
     ///
     /// - For `0.05`, `dot = 1`.
-    /// - For `100.0`, `dot = 3`.
+    /// - For `0`, `dot = 1`.
+    /// - For `100`, `dot = 3`.
+    /// - For `100.2`, `dot = 3`.
     dot: usize,
     /// The list of digits contained by a number.
     ///
@@ -162,15 +182,32 @@ pub struct Digits {
 }
 
 impl Digits {
+    /// Parses a floating-point value into a [`Self`].
     pub fn new(value: f64) -> Self {
         value.into()
     }
 
-    #[cfg(test)]
-    pub const unsafe fn new_raw(sign: Sign, dot: usize, digits: Box<[Digit]>) -> Self {
+    /// Constructs a [`Self`] from its component parts without checking any invariants.
+    ///
+    /// # Safety
+    ///
+    /// Assumes that `dot` is at most `digits.len()`. Other guarantees may be added in the future
+    /// without notice, consider this an experimental API.
+    pub const unsafe fn from_raw_parts(sign: Sign, dot: usize, digits: Box<[Digit]>) -> Self {
         Self { sign, dot, digits }
     }
 
+    /// Constructs a [`Self`] from its component parts.
+    pub fn from_parts(sign: Sign, dot: usize, digits: Box<[Digit]>) -> Option<Self> {
+        if dot > digits.len() {
+            return None;
+        }
+
+        Some(Self { sign, dot, digits })
+    }
+
+    /// Converts [`Self`] into a [`SplitFloat`], splitting the digits on the left and right side of
+    /// the [`Self::dot`].
     pub fn to_split(&self) -> SplitFloat {
         let lhs = self.digits[0..self.dot].to_vec().into_boxed_slice();
         let rhs = self.digits[self.dot..].to_vec().into_boxed_slice();
@@ -181,8 +218,9 @@ impl Digits {
     /// Returns the digit index of the last significant digit in [`Self`] when rounding to one or
     /// two significant figures.
     ///
-    /// This looks for the first non-zero digit. If that digit is 1 or 2, it returns the index of
-    /// the next digit if there is one. Otherwise, it returns the index of this first digit.
+    /// This looks for the first non-zero [`Digit`]. If that [`Digit`] is 1 or 2, it returns the
+    /// index of the next [`Digit`] if there is one. Otherwise, it returns the index of this first
+    /// [`Digit`].
     pub fn last_sigificant_digit(&self) -> usize {
         let mut skipped_one_or_two_index = None;
         self.digits
@@ -200,45 +238,44 @@ impl Digits {
             .unwrap_or(0)
     }
 
-    /// Returns the [`Place`] of the last significant digit in [`Self`] when rounding to one or two
-    /// significant figures.
+    /// Returns the [`Place`] of the last significant [`Digit`] in [`Self`] when rounding to one or
+    /// two significant figures.
     ///
-    /// This looks for the first non-zero digit. If that digit is 1 or 2, it returns the [`Place`]
-    /// of the next digit if there is one. Otherwise, it returns the [`Place`] of this first digit.
+    /// This looks for the first non-zero [`Digit`]. If that [`Digit`] is 1 or 2, it returns the
+    /// [`Place`] of the next [`Digit`] if there is one. Otherwise, it returns the [`Place`] of
+    /// this first [`Digit`].
     pub fn last_sigificant_place(&self) -> Place {
         self.digit_index_to_place(self.last_sigificant_digit())
     }
 
     /// Rounds [`Self`] to the given digit index.
     ///
-    /// If the digit at `digit_index + 1` is:
+    /// If `digit_index` is out of range, it will return a copy of [`Self`], unchanged.
+    ///
+    /// If the [`Digit`] at `digit_index + 1` is:
     ///
     /// - Out of range,
     /// - 0-4,
-    /// - or 5 and the digit at `digit_index` is even,
+    /// - or 5 and the [`Digit`] at `digit_index` is even,
     ///
     /// It rounds down, simply truncating [`Self`] at `digits_index`.
     ///
-    /// If the digit at `digit_index + 1` is:
+    /// If the [`Digit`] at `digit_index + 1` is:
     ///
     /// - 6-9
-    /// - or 5 and the digit at `digit_index` is odd
+    /// - or 5 and the [`Digit`] at `digit_index` is odd
     ///
-    /// It rounds up, adding `1` to the digit at `digit_index` (carrying tens up as necessary).
-    ///
-    /// # Panics
-    ///
-    /// Panics if `digit_index` is out of range.
+    /// It rounds up, adding `1` to the [`Digit`] at `digit_index` (carrying tens up as necessary).
     pub fn round_to_digit(&self, digit_index: usize) -> Self {
         if digit_index >= self.digits.len() {
-            panic!("digit index out of range");
+            return self.clone();
         }
 
         // Truncating before the dot will create a number that's some number of orders of
         // magnitudes too small. This tracks the number of zeros that will need to be
         // appended.
         //
-        // ```
+        // ```txt
         // 012345 6 `self.dot = 6`
         // 102345.0 `self.digits`
         //   ^      `digit_index = 2`
@@ -267,14 +304,15 @@ impl Digits {
             _ => digits.add(1),
         };
 
-        // If rounding up caused another digits to be added, move the dot one digit to the right.
+        // If rounding up caused another digit to be added, move the dot one digit to the right.
         let dot = if digits.len() == digit_index {
             self.dot + 1
         } else {
             self.dot
         };
 
-        if digits.len() <= digit_index && digit_index != 0 {
+        // If the addition return a slice shorter than expected, then there were some
+        if digits.len() <= digit_index {
             let missing_leading_zeros = digit_index + 1 - digits.len();
 
             let mut vec = [Digit::ZERO].repeat(missing_leading_zeros);
@@ -317,7 +355,7 @@ impl Digits {
             if self.digits[0].get() > 5 {
                 // E.g.,
                 //
-                // ```
+                // ```txt
                 //  0123 4  `self.dot`
                 //  6024.0  `self`
                 //

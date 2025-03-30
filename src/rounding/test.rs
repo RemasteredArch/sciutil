@@ -18,7 +18,7 @@ mod digits {
             $name:ident, $digit:expr;
         )+] => {$(
            pub const $name: super::super::digits::Digit =
-                unsafe { super::super::digits::Digit::new_raw($digit) };
+                unsafe { super::super::digits::Digit::new_unchecked($digit) };
         )+};
     }
 
@@ -71,19 +71,11 @@ macro_rules! digit_box {
 
 macro_rules! digits {
     ($sign:ident, $dot:expr, [$($digits:expr),+]) => {
-        unsafe { Digits::new_raw(Sign::$sign, $dot, digit_box![$($digits),+]) }
+        unsafe { Digits::from_raw_parts(Sign::$sign, $dot, digit_box![$($digits),+]) }
     };
 }
 
-/// `1024.05`:
-///
-/// ```rust
-/// Digits {
-///     sign: Sign::Positive,
-///     dot: 4,
-///     digits: [Digit(1), Digit(0), Digit(2), Digit(4), Digit(0), Digit(5)],
-/// };
-/// ```
+/// A [`DigitSlice`] representing `1024.05`.
 const SLICE_102405: DigitSlice = digit_slice![1, 0, 2, 4, 0, 5];
 
 #[test]
@@ -157,29 +149,88 @@ fn last_sigificant_digit() {
 
 #[test]
 fn round_to() {
-    // `rounding::round_with_uncertainty(1024.05, 0.015555312, "g")`
     let digits_102405 = digits!(Positive, 4, [1, 0, 2, 4, 0, 5]);
-    let digits_001 = digits!(Positive, 1, [0, 0, 1, 5, 5, 5, 5, 3, 1, 2]);
+    let digits_00155 = digits!(Positive, 1, [0, 0, 1, 5, 5, 5, 5, 3, 1, 2]);
+    let digits_00006 = digits!(Positive, 1, [0, 0, 0, 0, 6]);
+    let digits_06 = digits!(Positive, 1, [0, 6]);
 
+    // ```txt
+    // 0.015555312
+    //     ^
+    // 0.016
+    // ```
     assert_eq!(
-        digits_001.round_to_digit(3),
+        digits_00155.round_to_digit(3),
         digits!(Positive, 1, [0, 0, 1, 6])
     );
+    // ```txt
+    // 0.015555312
+    //   ^
+    // 0.0
+    // ```
+    assert_eq!(digits_00155.round_to_digit(1), digits!(Positive, 1, [0, 0]));
+    // ```txt
+    // 0.0006
+    //   ^
+    // 0.0
+    // ```
+    assert_eq!(digits_00006.round_to_digit(1), digits!(Positive, 1, [0, 0]));
+    // ```txt
+    // 0.0006
+    //     ^
+    // 0.001
+    // ```
+    assert_eq!(
+        digits_00006.round_to_digit(3),
+        digits!(Positive, 1, [0, 0, 0, 1])
+    );
+    // ```txt
+    // 1024.05
+    //  ^
+    // 1000
+    // ```
     assert_eq!(
         digits_102405.round_to_digit(1),
         digits!(Positive, 4, [1, 0, 0, 0])
     );
-}
-
-#[test]
-fn round_to_uncertainty() {
-    let rounded_to_uncertainty = rounding::round_with_uncertainty(1024.05, 0.015555312, "g");
-
-    assert_eq!(rounded_to_uncertainty, "1024.05 g ± 0.016 g")
+    // ```txt
+    // 1024.05
+    //      ^
+    // 1000.0
+    // ```
+    assert_eq!(
+        digits_102405.round_to_digit(4),
+        digits!(Positive, 4, [1, 0, 2, 4, 0])
+    );
+    // ```txt
+    // 1024.05
+    //    ^
+    // 1024
+    // ```
+    assert_eq!(
+        digits_102405.round_to_digit(3),
+        digits!(Positive, 4, [1, 0, 2, 4])
+    );
+    // ```txt
+    // 0.6
+    // ^
+    // 1
+    // ```
+    assert_eq!(digits_06.round_to_digit(0), digits!(Positive, 1, [1]));
+    // ```txt
+    // 0.6
+    //   ^
+    // 0.6
+    // ```
+    assert_eq!(digits_06.round_to_digit(1), digits_06);
 }
 
 #[test]
 fn round_with_uncertainty() {
+    assert_eq!(
+        rounding::round_with_uncertainty(1024.05, 0.015555312, "g"),
+        "1024.05 g ± 0.016 g"
+    );
     assert_eq!(
         rounding::round_with_uncertainty(1024.0511231255, 0.015555312, "g"),
         "1024.051 g ± 0.016 g"
