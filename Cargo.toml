@@ -1,0 +1,11 @@
+[package]
+name = "sciutil"
+description = "A library for scientific computation"
+authors = ["RemasteredArch"]
+repository = "https://github.com/RemasteredArch/sciutil"
+readme = true
+license = "MPL-2.0"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
