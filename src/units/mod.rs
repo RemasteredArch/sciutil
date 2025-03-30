@@ -6,19 +6,48 @@
 // copy of the Mozilla Public License was not distributed with this file, You can obtain one at
 // <https://mozilla.org/MPL/2.0/>.
 
+pub trait Float: From<f64> + Into<f64> {
+    /// Constructs a new instance of [`Self`].
+    fn new(value: f64) -> Self;
+
+    /// Returns the internal [`f64`] representation of [`Self`].
+    fn get(&self) -> f64;
+}
+
+impl Float for f64 {
+    fn new(value: f64) -> Self {
+        value
+    }
+
+    fn get(&self) -> f64 {
+        *self
+    }
+}
+
 macro_rules! float_type {
     ($(#[$attribute:meta])* $unit:ident) => {
         $(#[$attribute])*
         pub struct $unit(f64);
 
-        impl $unit {
-            /// Constructs a new instance of [`Self`].
-            pub fn new(value: f64) -> Self {
+        impl Float for $unit {
+            fn new(value: f64) -> Self {
                 Self(value)
             }
-            /// Returns the internal [`f64`] representation of [`Self`].
-            pub fn get(&self) -> f64 {
+
+            fn get(&self) -> f64 {
                 self.0
+            }
+        }
+
+        impl From<f64> for $unit {
+            fn from(value: f64) -> Self {
+                Self::new(value)
+            }
+        }
+
+        impl From<$unit> for f64 {
+            fn from(value: $unit) -> Self {
+                value.get()
             }
         }
     };
