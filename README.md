@@ -25,7 +25,7 @@ or I otherwise decide there's a better name.
 ## License
 
 Sciutil is licensed under the Mozilla Public License,
-version 2.0, or (as the license stipulates) any later version.
+version 2.0 or (as the license stipulates) any later version.
 A copy of the license should be distributed with sciutil,
 located at [`LICENSE`](./LICENSE),
 or you can obtain one at
