@@ -8,7 +8,7 @@
 
 use std::ops::Div;
 
-use super::units::Float;
+use crate::units::Float;
 
 /// Computes the mean of a list of values.
 ///
@@ -20,7 +20,7 @@ use super::units::Float;
 ///
 /// ```rust
 /// # use sciutil::statistics::mean;
-///
+/// #
 /// assert_eq!(mean(&[2.0, 3.0, 4.0]), 3.0);
 /// assert_eq!(mean(&[2.0, 3.0, 5.0]), 3.3333333333333335);
 /// ```
@@ -56,7 +56,7 @@ pub fn mean<F: Float>(list: &[F]) -> F {
 ///
 /// ```rust
 /// # use sciutil::statistics::stddev;
-///
+/// #
 /// assert_eq!(stddev(&[2.0, 3.0, 4.0]), 1.0);
 /// assert_eq!(stddev(&[10.0, 25.0, 50.0]), 20.207259421636902);
 /// ```

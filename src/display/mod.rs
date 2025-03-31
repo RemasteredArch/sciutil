@@ -21,7 +21,7 @@ use std::fmt::Display;
 ///
 /// ```rust
 /// # use sciutil::display::to_desmos_list;
-///
+/// #
 /// assert_eq!(to_desmos_list("l", &[5, 6, 10]), "l = [5,6,10]");
 /// assert_eq!(
 ///     to_desmos_list("m_{mass}", &[10.5, 202.0, 50.2001]),

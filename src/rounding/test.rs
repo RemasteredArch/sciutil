@@ -6,10 +6,9 @@
 // copy of the Mozilla Public License was not distributed with this file, You can obtain one at
 // <https://mozilla.org/MPL/2.0/>.
 
-use super::{
-    super::rounding,
-    digits::{DigitSlice, Digits, Sign},
-};
+use crate::units::{Float, Seconds, UncertainFloat};
+
+use super::digits::{DigitSlice, Digits, Sign};
 use digits::*;
 
 mod digits {
@@ -228,11 +227,14 @@ fn round_to() {
 #[test]
 fn round_with_uncertainty() {
     assert_eq!(
-        rounding::round_with_uncertainty(1_024.05, 0.015_555_312, "g"),
-        "1024.05 g ± 0.016 g"
+        super::round_with_uncertainty(&UncertainFloat::new(1_024.05, 0.015_555_312)),
+        "1024.05 ± 0.016"
     );
     assert_eq!(
-        rounding::round_with_uncertainty(1_024.051_123_125_5, 0.015_555_312, "g"),
-        "1024.051 g ± 0.016 g"
+        super::round_with_uncertainty(&UncertainFloat::new(
+            Seconds::new(1_024.051_123_125_5),
+            Seconds::new(0.015_555_312)
+        )),
+        "1024.051 s ± 0.016 s"
     );
 }

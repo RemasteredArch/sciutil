@@ -12,14 +12,18 @@ mod test;
 
 use digits::Digits;
 
+use crate::units::{Float, UncertainFloat};
+
 #[must_use]
-pub fn round_with_uncertainty(value: f64, uncertainty: f64, units: &str) -> String {
-    let value = Digits::new(value);
-    let uncertainty = Digits::new(uncertainty);
+pub fn round_with_uncertainty<F: Float>(with_uncertainty: &UncertainFloat<F>) -> String {
+    let unit = F::SYMBOL.map_or(String::new(), |u| format!(" {u}"));
+
+    let value = Digits::new(with_uncertainty.value().get());
+    let uncertainty = Digits::new(with_uncertainty.uncertainty().get());
 
     let last_place = uncertainty.last_sigificant_place();
     let uncertainty = uncertainty.round_to_place(last_place);
     let value = value.round_to_place(last_place);
 
-    format!("{value} {units} ± {uncertainty} {units}")
+    format!("{value}{unit} ± {uncertainty}{unit}")
 }
