@@ -4,11 +4,11 @@ A library for scientific computation.
 
 ## Features
 
-- `rounding`: Rounding floating-point values to match floating point uncertainty values
+- `rounding`: Rounding floating-point values to match floating-point uncertainty values
   to one or two significant figures.
   - E.g., `rounding::round_with_uncertainty(1024.0511231255, 0.015555312, "g")`
     -> `1024.051 g ± 0.016 g`.
-- `units`: Wrapper structs to represent arbitrary float-point values as SI units.
+- `units`: Wrapper structs to represent arbitrary floating-point values as SI units.
 - `statistics`: List operations for statistics.
 
 ## Stability

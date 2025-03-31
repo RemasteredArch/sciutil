@@ -186,7 +186,7 @@ impl From<DigitSlice<'_>> for u32 {
     }
 }
 
-/// Represents a floating point number in a stable manner.
+/// Represents a floating-point number in a stable manner.
 ///
 /// ```txt
 /// | `sign = Sign::Negative`
@@ -222,7 +222,7 @@ impl Digits {
     pub fn new(value: f64) -> Self {
         value
             .try_into()
-            .expect("received invalid floating point number")
+            .expect("received invalid floating-point number")
     }
 
     /// Constructs a [`Self`] from its component parts without checking any invariants.
