@@ -214,9 +214,15 @@ pub struct Digits {
 
 impl Digits {
     /// Parses a floating-point value into a [`Self`].
+    ///
+    /// # Panics
+    ///
+    /// Panics if `value` is [`FpCategory::Nan`] or [`FpCategory::Infinite`].
     #[must_use]
     pub fn new(value: f64) -> Self {
-        value.into()
+        value
+            .try_into()
+            .expect("received invalid floating point number")
     }
 
     /// Constructs a [`Self`] from its component parts without checking any invariants.
@@ -373,12 +379,20 @@ impl Digits {
         }
     }
 
-    /// Wrapper around [`Self::round_to_digit`] that uses [`Place`]s instead of digit indices. See
-    /// that function's documentation for more.
+    /// Wrapper around [`Self::round_to_digit`] that uses [`Place`]s instead of digit indices.
     ///
-    /// Returns [`None`] if the provided [`Place`] exists outside of the range of [`Self::digits`].
+    /// - If the provided [`Place`] is one digit to the left of [`Self`]'s first digit, this will
+    ///   attempt to round up.
+    /// - If the provided [`Place`] is more than one digit to the left of [`Self`]'s first digit,
+    ///   this will return 0.
+    /// - If the provided [`Place`] is to the right of [`Self`]'s last digit, it will return
+    ///   [`Self`], unchanged.
+    ///
+    /// Otherwise, behaves the same as calling [`Self::place_to_digit_index`] and
+    /// [`Self::round_to_digit`].
+    #[expect(clippy::missing_panics_doc, reason = "see `expect` string")]
     #[must_use]
-    pub fn round_to_place(&self, place: Place) -> Option<Self> {
+    pub fn round_to_place(&self, place: Place) -> Self {
         // Zero represents the dot for [`Place`] values, but the digit after the dot for digit
         // indices. This accounts for that difference.
         let offset = if place.is_positive() {
@@ -407,18 +421,18 @@ impl Digits {
                 // ```
                 let mut rounded_up = vec![Digit::ONE];
                 rounded_up.append(&mut [Digit::ZERO].repeat(self.dot));
-                return Some(Self {
+                return Self {
                     sign: self.sign,
                     dot: self.dot + 1,
                     digits: rounded_up.into_boxed_slice(),
-                });
+                };
             }
 
-            return Some(Self {
-                sign: self.sign,
-                dot: 0,
-                digits: [Digit::ZERO].to_vec().into_boxed_slice(),
-            });
+            return Self::default();
+        }
+
+        if digit_index < -1 {
+            return Self::default();
         }
 
         #[expect(
@@ -426,10 +440,13 @@ impl Digits {
             reason = "I've never seen the number of digits in an `f64` surpass `i32::MAX`"
         )]
         if digit_index >= self.digits.len() as isize {
-            return Some(self.clone());
+            return self.clone();
         }
 
-        Some(self.round_to_digit(self.place_to_digit_index(place)?))
+        self.round_to_digit(
+            self.place_to_digit_index(place)
+                .expect("handled every out-of-range case"),
+        )
     }
 
     /// Converts a digit index (oriented the list of digits, specific to this [`Self`]) to a
@@ -478,19 +495,28 @@ impl Digits {
     }
 }
 
-impl From<f64> for Digits {
+impl Default for Digits {
+    #[must_use]
+    fn default() -> Self {
+        Self {
+            sign: Sign::Positive,
+            dot: 0,
+            digits: [Digit::ZERO].to_vec().into_boxed_slice(),
+        }
+    }
+}
+
+impl TryFrom<f64> for Digits {
+    type Error = ();
+
     /// Converts an [`f64`] to base-ten decimal number and parses it into a [`Self`].
     ///
-    /// # Panics
+    /// # Errors
     ///
-    /// Panics if `value` is [`FpCategory::Nan`] or [`FpCategory::Infinite`].
-    #[must_use]
-    fn from(value: f64) -> Self {
-        match value.classify() {
-            FpCategory::Nan | FpCategory::Infinite => {
-                panic!("received invalid floating point number")
-            }
-            _ => (),
+    /// Returns [`Self::Error`] if `value` is [`FpCategory::Nan`] or [`FpCategory::Infinite`].
+    fn try_from(value: f64) -> Result<Self, Self::Error> {
+        if matches!(value.classify(), FpCategory::Nan | FpCategory::Infinite) {
+            return Err(());
         }
 
         let str = value.to_string();
@@ -511,11 +537,11 @@ impl From<f64> for Digits {
             }
         }
 
-        Self {
+        Ok(Self {
             sign,
             dot: dot.unwrap_or(digits.len()),
             digits: digits.into_boxed_slice(),
-        }
+        })
     }
 }
 

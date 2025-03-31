@@ -18,8 +18,8 @@ pub fn round_with_uncertainty(value: f64, uncertainty: f64, units: &str) -> Stri
     let uncertainty = Digits::new(uncertainty);
 
     let last_place = uncertainty.last_sigificant_place();
-    let uncertainty = uncertainty.round_to_place(last_place).unwrap();
-    let value = value.round_to_place(last_place).unwrap();
+    let uncertainty = uncertainty.round_to_place(last_place);
+    let value = value.round_to_place(last_place);
 
     format!("{value} {units} ± {uncertainty} {units}")
 }
