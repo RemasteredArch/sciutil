@@ -8,6 +8,7 @@
 
 #![warn(clippy::nursery, clippy::pedantic)]
 
+pub mod display;
 pub mod rounding;
 pub mod statistics;
 pub mod units;

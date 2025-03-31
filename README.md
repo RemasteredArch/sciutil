@@ -10,6 +10,7 @@ A library for scientific computation.
     -> `1024.051 g ± 0.016 g`.
 - [`units`](./src/units/): Wrapper structs to mark arbitrary floating-point values as SI units.
 - [`statistics`](./src/statistics/): List operations for statistics.
+- [`display`](./src/display/): Facilities for pretty-printing things.
 
 ## Stability
 
