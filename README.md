@@ -4,10 +4,12 @@ A library for scientific computation.
 
 ## Features
 
-- Rounding floating-point values to match floating point uncertainty values
+- `rounding`: Rounding floating-point values to match floating point uncertainty values
   to one or two significant figures.
   - E.g., `rounding::round_with_uncertainty(1024.0511231255, 0.015555312, "g")`
     -> `1024.051 g ± 0.016 g`.
+- `units`: Wrapper structs to represent arbitrary float-point values as SI units.
+- `statistics`: List operations for statistics.
 
 ## Stability
 
@@ -19,7 +21,7 @@ I would be happy to make a stronger stability guarantee.
 You are also welcome to request features.
 
 A part of these breaking changes includes possible name changes,
-if "scituil" is ever to be registered
+if "sciutil" is ever to be registered
 or I otherwise decide there's a better name.
 
 ## License
