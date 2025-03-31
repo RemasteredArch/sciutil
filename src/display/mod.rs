@@ -14,7 +14,8 @@ use std::fmt::Display;
 /// Note that Desmos variable names can only be one character. If you want longer names, use
 /// subscripts: `"b_{binding}"`.
 ///
-/// This assumes that the elements of `list` produce values appropriate for Desmos.
+/// This assumes that the elements of `list` produce values appropriate for Desmos and that
+/// `variable_name` is a valid Desmos variable name.
 ///
 /// # Examples
 ///
