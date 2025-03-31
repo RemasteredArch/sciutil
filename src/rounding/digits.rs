@@ -21,8 +21,8 @@ pub enum Sign {
 impl Display for Sign {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let as_str = match self {
-            Sign::Positive => "",
-            Sign::Negative => "-",
+            Self::Positive => "",
+            Self::Negative => "-",
         };
 
         write!(f, "{as_str}",)
@@ -58,7 +58,7 @@ impl Digit {
     }
 
     /// Gets the internal representation of [`Self`] as a [`u8`].
-    pub fn get(&self) -> u8 {
+    pub const fn get(&self) -> u8 {
         self.0
     }
 }
@@ -85,6 +85,7 @@ impl TryFrom<char> for Digit {
     fn try_from(digit: char) -> Result<Self, Self::Error> {
         // `to_digit(10)` will return a number from 0-9, so it is safe to cast to [`u8`] and
         // blindly construct [`Self`].
+        #[expect(clippy::cast_possible_truncation, reason = "see comment")]
         Ok(Self(digit.to_digit(10).ok_or(())? as u8))
     }
 }
@@ -94,6 +95,18 @@ impl From<Digit> for char {
         const CHARS: [char; 10] = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
 
         CHARS[digit.get() as usize]
+    }
+}
+
+impl From<Digit> for u8 {
+    fn from(digit: Digit) -> Self {
+        digit.get()
+    }
+}
+
+impl From<Digit> for u32 {
+    fn from(digit: Digit) -> Self {
+        digit.get().into()
     }
 }
 
@@ -117,6 +130,7 @@ impl<'a> DigitSlice<'a> {
 
     /// Treats [`Self`] as a [`u32`], adds another [`u32`], then converts back to a (boxed) slice
     /// of [`Digit`]s. This may cause the slice to grow in length.
+    #[expect(clippy::missing_panics_doc, reason = "see `expect` string")]
     pub fn add(&self, value: u32) -> Box<[Digit]> {
         // This could be more efficient, but whatever.
         (u32::from(self) + value)
@@ -126,8 +140,8 @@ impl<'a> DigitSlice<'a> {
             .collect()
     }
 
-    /// Gets the interal slice representation of [`Self`].
-    pub fn get(&self) -> &'a [Digit] {
+    /// Gets the internal slice representation of [`Self`].
+    pub const fn get(&self) -> &'a [Digit] {
         self.0
     }
 
@@ -138,11 +152,16 @@ impl<'a> DigitSlice<'a> {
 }
 
 impl From<&DigitSlice<'_>> for u32 {
+    #[expect(
+        clippy::cast_possible_truncation,
+        reason = "I've never seen the number of digits in an `f64` surpass `u32::MAX`"
+    )]
     fn from(digits: &DigitSlice<'_>) -> Self {
         let mut value = 0;
+
         // Ones place is `place = 0`, tens place is `place = 1`, etc.
-        for (place, digit) in digits.get().iter().rev().enumerate() {
-            value += digit.get() as u32 * 10_u32.pow(place as u32)
+        for (place, &digit) in digits.get().iter().rev().enumerate() {
+            value += Self::from(digit) * 10_u32.pow(place as Self);
         }
 
         value
@@ -347,6 +366,11 @@ impl Digits {
         } else {
             place.get()
         };
+
+        #[expect(
+            clippy::cast_possible_wrap,
+            reason = "I've never seen the number of digits in an `f64` surpass `i32::MAX`"
+        )]
         let digit_index = self.dot as isize + offset;
 
         // If we're rounding to the digit immediately to the left of the first digit in [`Self`],
@@ -377,6 +401,10 @@ impl Digits {
             });
         }
 
+        #[expect(
+            clippy::cast_possible_wrap,
+            reason = "I've never seen the number of digits in an `f64` surpass `i32::MAX`"
+        )]
         if digit_index >= self.digits.len() as isize {
             return Some(self.clone());
         }
@@ -386,7 +414,12 @@ impl Digits {
 
     /// Converts a digit index (oriented the list of digits, specific to this [`Self`]) to a
     /// generic [`Place`] (oriented around [`Self::dot`]).
-    pub fn digit_index_to_place(&self, digit_index: usize) -> Place {
+    #[expect(clippy::missing_panics_doc, reason = "see `expect` string")]
+    pub const fn digit_index_to_place(&self, digit_index: usize) -> Place {
+        #[expect(
+            clippy::cast_possible_wrap,
+            reason = "I've never seen the number of digits in an `f64` surpass `i32::MAX`"
+        )]
         let place = digit_index as isize - self.dot as isize;
 
         // Zero represents the dot for [`Place`] values, but the digit after the dot for digit
@@ -424,6 +457,11 @@ impl Digits {
 }
 
 impl From<f64> for Digits {
+    /// Converts an [`f64`] to base-ten decimal number and parses it into a [`Self`].
+    ///
+    /// # Panics
+    ///
+    /// Panics if `value` is [`FpCategory::Nan`] or [`FpCategory::Infinite`].
     fn from(value: f64) -> Self {
         match value.classify() {
             FpCategory::Nan | FpCategory::Infinite => {
@@ -433,10 +471,9 @@ impl From<f64> for Digits {
         }
 
         let str = value.to_string();
-        let (sign, str) = match str.strip_prefix("-") {
-            Some(str) => (Sign::Negative, str),
-            None => (Sign::Positive, str.as_str()),
-        };
+        let (sign, str) = str
+            .strip_prefix("-")
+            .map_or((Sign::Positive, str.as_str()), |str| (Sign::Negative, str));
 
         let mut digits: Vec<Digit> = vec![];
         let mut dot = None;
