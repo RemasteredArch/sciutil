@@ -12,6 +12,7 @@ mod test;
 
 use digits::Digits;
 
+#[must_use]
 pub fn round_with_uncertainty(value: f64, uncertainty: f64, units: &str) -> String {
     let value = Digits::new(value);
     let uncertainty = Digits::new(uncertainty);

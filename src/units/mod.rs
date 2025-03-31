@@ -8,9 +8,11 @@
 
 pub trait Float: From<f64> + Into<f64> {
     /// Constructs a new instance of [`Self`].
+    #[must_use]
     fn new(value: f64) -> Self;
 
     /// Returns the internal [`f64`] representation of [`Self`].
+    #[must_use]
     fn get(&self) -> f64;
 }
 
@@ -69,6 +71,7 @@ impl Meters {
 }
 
 impl From<Centimeters> for Meters {
+    #[inline]
     fn from(value: Centimeters) -> Self {
         Self::new(value.get() * Centimeters::TO_METERS)
     }
@@ -85,6 +88,7 @@ impl Centimeters {
 }
 
 impl From<Meters> for Centimeters {
+    #[inline]
     fn from(value: Meters) -> Self {
         Self::new(value.get() * Meters::TO_CENTIMETERS)
     }

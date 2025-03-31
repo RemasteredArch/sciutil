@@ -40,6 +40,7 @@ impl Digit {
     const ONE: Self = Self(1);
 
     /// Creates a new [`Self`], checking that it is valid.
+    #[must_use]
     pub fn new(digit: u8) -> Option<Self> {
         if (Self::MIN..=Self::MAX).contains(&digit) {
             return Some(Self(digit));
@@ -53,11 +54,13 @@ impl Digit {
     /// # Safety
     ///
     /// Assumes that `0 <= digit <= 9`.
+    #[must_use]
     pub const unsafe fn new_unchecked(digit: u8) -> Self {
         Self(digit)
     }
 
     /// Gets the internal representation of [`Self`] as a [`u8`].
+    #[must_use]
     pub const fn get(&self) -> u8 {
         self.0
     }
@@ -91,6 +94,7 @@ impl TryFrom<char> for Digit {
 }
 
 impl From<Digit> for char {
+    #[must_use]
     fn from(digit: Digit) -> Self {
         const CHARS: [char; 10] = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
 
@@ -99,12 +103,14 @@ impl From<Digit> for char {
 }
 
 impl From<Digit> for u8 {
+    #[must_use]
     fn from(digit: Digit) -> Self {
         digit.get()
     }
 }
 
 impl From<Digit> for u32 {
+    #[must_use]
     fn from(digit: Digit) -> Self {
         digit.get().into()
     }
@@ -124,6 +130,7 @@ pub struct DigitSlice<'a>(&'a [Digit]);
 
 impl<'a> DigitSlice<'a> {
     /// Constructs a new instance of [`Self`].
+    #[must_use]
     pub const fn new(digits: &'a [Digit]) -> Self {
         Self(digits)
     }
@@ -131,6 +138,7 @@ impl<'a> DigitSlice<'a> {
     /// Treats [`Self`] as a [`u32`], adds another [`u32`], then converts back to a (boxed) slice
     /// of [`Digit`]s. This may cause the slice to grow in length.
     #[expect(clippy::missing_panics_doc, reason = "see `expect` string")]
+    #[must_use]
     pub fn add(&self, value: u32) -> Box<[Digit]> {
         // This could be more efficient, but whatever.
         (u32::from(self) + value)
@@ -141,11 +149,13 @@ impl<'a> DigitSlice<'a> {
     }
 
     /// Gets the internal slice representation of [`Self`].
+    #[must_use]
     pub const fn get(&self) -> &'a [Digit] {
         self.0
     }
 
     /// Converts [`Self`] to a boxed slice of [`Digit`]s.
+    #[must_use]
     pub fn into_boxed(self) -> Box<[Digit]> {
         self.0.to_vec().into_boxed_slice()
     }
@@ -156,6 +166,7 @@ impl From<&DigitSlice<'_>> for u32 {
         clippy::cast_possible_truncation,
         reason = "I've never seen the number of digits in an `f64` surpass `u32::MAX`"
     )]
+    #[must_use]
     fn from(digits: &DigitSlice<'_>) -> Self {
         let mut value = 0;
 
@@ -169,6 +180,7 @@ impl From<&DigitSlice<'_>> for u32 {
 }
 
 impl From<DigitSlice<'_>> for u32 {
+    #[must_use]
     fn from(digits: DigitSlice<'_>) -> Self {
         (&digits).into()
     }
@@ -202,6 +214,7 @@ pub struct Digits {
 
 impl Digits {
     /// Parses a floating-point value into a [`Self`].
+    #[must_use]
     pub fn new(value: f64) -> Self {
         value.into()
     }
@@ -212,11 +225,13 @@ impl Digits {
     ///
     /// Assumes that `dot` is at most `digits.len()`. Other guarantees may be added in the future
     /// without notice, consider this an experimental API.
+    #[must_use]
     pub const unsafe fn from_raw_parts(sign: Sign, dot: usize, digits: Box<[Digit]>) -> Self {
         Self { sign, dot, digits }
     }
 
     /// Constructs a [`Self`] from its component parts.
+    #[must_use]
     pub fn from_parts(sign: Sign, dot: usize, digits: Box<[Digit]>) -> Option<Self> {
         if dot > digits.len() {
             return None;
@@ -227,6 +242,7 @@ impl Digits {
 
     /// Converts [`Self`] into a [`SplitFloat`], splitting the digits on the left and right side of
     /// the [`Self::dot`].
+    #[must_use]
     pub fn to_split(&self) -> SplitFloat {
         let lhs = self.digits[0..self.dot].to_vec().into_boxed_slice();
         let rhs = self.digits[self.dot..].to_vec().into_boxed_slice();
@@ -240,6 +256,7 @@ impl Digits {
     /// This looks for the first non-zero [`Digit`]. If that [`Digit`] is 1 or 2, it returns the
     /// index of the next [`Digit`] if there is one. Otherwise, it returns the index of this first
     /// [`Digit`].
+    #[must_use]
     pub fn last_sigificant_digit(&self) -> usize {
         let mut skipped_one_or_two_index = None;
         self.digits
@@ -263,6 +280,7 @@ impl Digits {
     /// This looks for the first non-zero [`Digit`]. If that [`Digit`] is 1 or 2, it returns the
     /// [`Place`] of the next [`Digit`] if there is one. Otherwise, it returns the [`Place`] of
     /// this first [`Digit`].
+    #[must_use]
     pub fn last_sigificant_place(&self) -> Place {
         self.digit_index_to_place(self.last_sigificant_digit())
     }
@@ -285,6 +303,7 @@ impl Digits {
     /// - or 5 and the [`Digit`] at `digit_index` is odd
     ///
     /// It rounds up, adding `1` to the [`Digit`] at `digit_index` (carrying tens up as necessary).
+    #[must_use]
     pub fn round_to_digit(&self, digit_index: usize) -> Self {
         if digit_index >= self.digits.len() {
             return self.clone();
@@ -358,6 +377,7 @@ impl Digits {
     /// that function's documentation for more.
     ///
     /// Returns [`None`] if the provided [`Place`] exists outside of the range of [`Self::digits`].
+    #[must_use]
     pub fn round_to_place(&self, place: Place) -> Option<Self> {
         // Zero represents the dot for [`Place`] values, but the digit after the dot for digit
         // indices. This accounts for that difference.
@@ -415,6 +435,7 @@ impl Digits {
     /// Converts a digit index (oriented the list of digits, specific to this [`Self`]) to a
     /// generic [`Place`] (oriented around [`Self::dot`]).
     #[expect(clippy::missing_panics_doc, reason = "see `expect` string")]
+    #[must_use]
     pub const fn digit_index_to_place(&self, digit_index: usize) -> Place {
         #[expect(
             clippy::cast_possible_wrap,
@@ -437,6 +458,7 @@ impl Digits {
     /// around the list of digits, specific to this [`Self`]).
     ///
     /// Returns [`None`] if the provided [`Place`] exists outside of the range of [`Self::digits`].
+    #[must_use]
     pub fn place_to_digit_index(&self, place: Place) -> Option<usize> {
         // Zero represents the dot for [`Place`] values, but the digit after the dot for digit
         // indices. This accounts for that difference.
@@ -462,6 +484,7 @@ impl From<f64> for Digits {
     /// # Panics
     ///
     /// Panics if `value` is [`FpCategory::Nan`] or [`FpCategory::Infinite`].
+    #[must_use]
     fn from(value: f64) -> Self {
         match value.classify() {
             FpCategory::Nan | FpCategory::Infinite => {

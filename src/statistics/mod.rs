@@ -24,7 +24,7 @@ use super::units::Float;
 /// assert_eq!(mean(&[2.0, 3.0, 4.0]), 3.0);
 /// assert_eq!(mean(&[2.0, 3.0, 5.0]), 3.3333333333333335);
 /// ```
-#[inline]
+#[must_use]
 pub fn mean<F: Float>(list: &[F]) -> F {
     #[expect(
         clippy::cast_precision_loss,
@@ -60,7 +60,7 @@ pub fn mean<F: Float>(list: &[F]) -> F {
 /// assert_eq!(stddev(&[2.0, 3.0, 4.0]), 1.0);
 /// assert_eq!(stddev(&[10.0, 25.0, 50.0]), 20.207259421636902);
 /// ```
-#[inline]
+#[must_use]
 pub fn stddev<F: Float>(list: &[F]) -> F {
     let mean = mean(list).get();
 
