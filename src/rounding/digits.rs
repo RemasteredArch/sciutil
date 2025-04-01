@@ -53,7 +53,7 @@ impl Digit {
     /// Creates a new [`Self`], checking that it is valid.
     #[must_use]
     pub const fn new(digit: u8) -> Option<Self> {
-        // Assumes that `Self::MIN == 0` so that it can skip `digit >= Self::MIN`.
+        // Assumes that `Self::MIN == u8::MIN` so that it can skip `digit >= Self::MIN`.
         if digit <= Self::MAX {
             return Some(Self(digit));
         }
