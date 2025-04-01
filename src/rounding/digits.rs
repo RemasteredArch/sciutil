@@ -34,15 +34,27 @@ impl Display for Sign {
 pub struct Digit(u8);
 
 impl Digit {
-    const MIN: u8 = 0;
-    const MAX: u8 = 9;
-    const ZERO: Self = Self(0);
-    const ONE: Self = Self(1);
+    /// The minimum possible value of [`Self`].
+    pub const MIN: u8 = 0;
+    /// The maximum possible value of [`Self`].
+    pub const MAX: u8 = 9;
+
+    pub const ZERO: Self = Self(0);
+    pub const ONE: Self = Self(1);
+    pub const TWO: Self = Self(2);
+    pub const THREE: Self = Self(3);
+    pub const FOUR: Self = Self(4);
+    pub const FIVE: Self = Self(5);
+    pub const SIX: Self = Self(6);
+    pub const SEVEN: Self = Self(7);
+    pub const EIGHT: Self = Self(8);
+    pub const NINE: Self = Self(9);
 
     /// Creates a new [`Self`], checking that it is valid.
     #[must_use]
-    pub fn new(digit: u8) -> Option<Self> {
-        if (Self::MIN..=Self::MAX).contains(&digit) {
+    pub const fn new(digit: u8) -> Option<Self> {
+        // Assumes that `Self::MIN == 0` so that it can skip `digit >= Self::MIN`.
+        if digit <= Self::MAX {
             return Some(Self(digit));
         }
 

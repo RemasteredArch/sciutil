@@ -8,46 +8,21 @@
 
 use crate::units::{Float, Seconds, UncertainFloat};
 
-use super::digits::{DigitSlice, Digits, Sign};
-use digits::*;
-
-mod digits {
-    macro_rules! digits {
-        [$(
-            $name:ident, $digit:expr;
-        )+] => {$(
-           pub const $name: super::super::digits::Digit =
-                unsafe { super::super::digits::Digit::new_unchecked($digit) };
-        )+};
-    }
-
-    digits![
-        ZERO, 0;
-        ONE, 1;
-        TWO, 2;
-        THREE, 3;
-        FOUR, 4;
-        FIVE, 5;
-        SIX, 6;
-        SEVEN, 7;
-        EIGHT, 8;
-        NINE, 9;
-    ];
-}
+use super::digits::{Digit, DigitSlice, Digits, Sign};
 
 macro_rules! digit {
     ($digit:expr) => {
         match $digit {
-            0 => ZERO,
-            1 => ONE,
-            2 => TWO,
-            3 => THREE,
-            4 => FOUR,
-            5 => FIVE,
-            6 => SIX,
-            7 => SEVEN,
-            8 => EIGHT,
-            9 => NINE,
+            0 => Digit::ZERO,
+            1 => Digit::ONE,
+            2 => Digit::TWO,
+            3 => Digit::THREE,
+            4 => Digit::FOUR,
+            5 => Digit::FIVE,
+            6 => Digit::SIX,
+            7 => Digit::SEVEN,
+            8 => Digit::EIGHT,
+            9 => Digit::NINE,
             _ => panic!("invalid macro input, expected digit"),
         }
     };
@@ -81,14 +56,28 @@ const SLICE_102405: DigitSlice = digit_slice![1, 0, 2, 4, 0, 5];
 fn check_macros() {
     assert_eq!(
         SLICE_102405,
-        DigitSlice::new(&[ONE, ZERO, TWO, FOUR, ZERO, FIVE]),
+        DigitSlice::new(&[
+            Digit::ONE,
+            Digit::ZERO,
+            Digit::TWO,
+            Digit::FOUR,
+            Digit::ZERO,
+            Digit::FIVE
+        ]),
     );
 
     assert_eq!(
         digit_box![1, 0, 2, 4, 0, 5],
-        [ONE, ZERO, TWO, FOUR, ZERO, FIVE]
-            .to_vec()
-            .into_boxed_slice(),
+        [
+            Digit::ONE,
+            Digit::ZERO,
+            Digit::TWO,
+            Digit::FOUR,
+            Digit::ZERO,
+            Digit::FIVE
+        ]
+        .to_vec()
+        .into_boxed_slice(),
     );
 }
 
