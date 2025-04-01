@@ -6,6 +6,8 @@
 // copy of the Mozilla Public License was not distributed with this file, You can obtain one at
 // <https://mozilla.org/MPL/2.0/>.
 
+//! - `display`: Miscellaneous facilities for pretty-printing things.
+
 use std::fmt::Display;
 
 /// Formats a list of values in a form that [Desmos](https://desmos.com/calculator) will accept as

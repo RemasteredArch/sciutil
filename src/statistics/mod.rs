@@ -6,6 +6,8 @@
 // copy of the Mozilla Public License was not distributed with this file, You can obtain one at
 // <https://mozilla.org/MPL/2.0/>.
 
+//! `statistics`: List operations for statistics.
+
 use std::ops::Div;
 
 use crate::units::Float;

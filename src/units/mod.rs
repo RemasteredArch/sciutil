@@ -6,6 +6,10 @@
 // copy of the Mozilla Public License was not distributed with this file, You can obtain one at
 // <https://mozilla.org/MPL/2.0/>.
 
+//! `units`: Wrapper structs to mark arbitrary floating-point values as SI units.
+//!
+//! In particular, see [`Float`] and [`UncertainFloat`].
+
 pub trait Float: From<f64> + Into<f64> {
     /// Constructs a new instance of [`Self`].
     #[must_use]
