@@ -10,6 +10,8 @@
 //!
 //! In particular, see [`Float`] and [`UncertainFloat`].
 
+use std::{fmt::Display, marker::PhantomData};
+
 pub trait Float: From<f64> + Into<f64> {
     /// Constructs a new instance of [`Self`].
     #[must_use]
@@ -114,6 +116,137 @@ impl<F: Float> UncertainFloat<F> {
     #[must_use]
     pub fn max(&self) -> F {
         F::new(self.value.get() + self.uncertainty.get().abs())
+    }
+}
+
+/// A wrapper struct to show the dependence on one unit by another.
+///
+/// ```rust
+/// # use sciutil::units::{Float, Meters, Per, Seconds};
+/// #
+/// // Formats nicely:
+/// type Acceleration = Per<Meters, Seconds, 2>;
+/// let accel = Acceleration::new(5.05);
+/// assert_eq!(accel.to_string(), "5.05 meters per second squared");
+///
+/// // Either parameter not having a name disables any units:
+/// assert_eq!(Per::<Meters, f64, 2>::new(5.05).to_string(), "5.05");
+///
+/// // More power-dependent formatting:
+/// assert_eq!(Per::<Meters, Seconds, 0>::new(5.05).to_string(), "5.05 meters");
+/// assert_eq!(Per::<Meters, Seconds, 1>::new(5.05).to_string(), "5.05 meters per second");
+/// assert_eq!(Per::<Meters, Seconds, 3>::new(5.05).to_string(), "5.05 meters per second cubed");
+/// assert_eq!(Per::<Meters, Seconds, 4>::new(5.05).to_string(), "5.05 meters per second^4");
+/// ```
+pub struct Per<F: Float, T: Float, const P: usize>(f64, PhantomData<F>, PhantomData<T>);
+
+impl<F: Float, T: Float, const P: usize> Per<F, T, P> {
+    /// ```rust
+    /// # use sciutil::units::{Float, Meters, Per, Seconds};
+    /// #
+    /// // Formats nicely:
+    /// type Acceleration = Per<Meters, Seconds, 2>;
+    /// assert_eq!(Acceleration::name(), Some("meters per second squared".to_string()));
+    ///
+    /// // Either parameter not having a name disables any units:
+    /// assert_eq!(Per::<Meters, f64, 2>::name(), None);
+    ///
+    /// // More power-dependent formatting:
+    /// assert_eq!(Per::<Meters, Seconds, 0>::name(), Some("meters".to_string()));
+    /// assert_eq!(Per::<Meters, Seconds, 1>::name(), Some("meters per second".to_string()));
+    /// assert_eq!(Per::<Meters, Seconds, 3>::name(), Some("meters per second cubed".to_string()));
+    /// assert_eq!(Per::<Meters, Seconds, 4>::name(), Some("meters per second^4".to_string()));
+    /// ```
+    #[must_use]
+    pub fn name() -> Option<String> {
+        let dependent = F::NAME_PLURAL?;
+        if P == 0 {
+            return Some(dependent.to_string());
+        }
+        let independent = T::NAME_SINGLE?;
+
+        Some(format!(
+            "{dependent} per {independent}{}",
+            match P {
+                1 => String::new(),
+                2 => " squared".to_string(),
+                3 => " cubed".to_string(),
+                _ => format!("^{P}"),
+            }
+        ))
+    }
+
+    /// ```rust
+    /// # use sciutil::units::{Float, Meters, Per, Seconds};
+    /// #
+    /// // Formats nicely:
+    /// type Acceleration = Per<Meters, Seconds, 2>;
+    /// assert_eq!(Acceleration::symbol(), Some("m / s^2".to_string()));
+    ///
+    /// // Either parameter not having a name disables any units:
+    /// assert_eq!(Per::<Meters, f64, 2>::symbol(), None);
+    ///
+    /// // More power-dependent formatting:
+    /// assert_eq!(Per::<Meters, Seconds, 0>::symbol(), Some("m".to_string()));
+    /// assert_eq!(Per::<Meters, Seconds, 1>::symbol(), Some("m / s".to_string()));
+    /// assert_eq!(Per::<Meters, Seconds, 3>::symbol(), Some("m / s^3".to_string()));
+    /// assert_eq!(Per::<Meters, Seconds, 4>::symbol(), Some("m / s^4".to_string()));
+    /// ```
+    #[must_use]
+    pub fn symbol() -> Option<String> {
+        let dependent = F::SYMBOL?;
+        if P == 0 {
+            return Some(dependent.to_string());
+        }
+        let independent = T::SYMBOL?;
+
+        Some(format!(
+            "{dependent} / {independent}{}",
+            match P {
+                1 => String::new(),
+                _ => format!("^{P}"),
+            }
+        ))
+    }
+}
+
+impl<F: Float, T: Float, const P: usize> Display for Per<F, T, P> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}{}",
+            self.get(),
+            Self::name().map_or(String::new(), |s| format!(" {s}"))
+        )
+    }
+}
+
+impl<F: Float, T: Float, const P: usize> Float for Per<F, T, P> {
+    /// See [`Self::name`].
+    const NAME_SINGLE: Option<&str> = None;
+    /// See [`Self::name`].
+    const NAME_PLURAL: Option<&str> = None;
+    /// See [`Self::symbol`].
+    const SYMBOL: Option<&str> = None;
+
+    fn new(value: f64) -> Self {
+        Self(value, PhantomData::<F>, PhantomData::<T>)
+    }
+
+    fn get(&self) -> f64 {
+        self.0
+    }
+}
+
+impl<T: Float, F: Float, const P: usize> From<f64> for Per<F, T, P> {
+    fn from(value: f64) -> Self {
+        Self::new(value)
+    }
+}
+
+impl<T: Float, F: Float, const P: usize> From<Per<F, T, P>> for f64 {
+    fn from(value: Per<F, T, P>) -> Self {
+        value.get()
     }
 }
 
