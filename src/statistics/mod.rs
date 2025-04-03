@@ -8,6 +8,8 @@
 
 //! `statistics`: List operations for statistics.
 
+pub mod derivatives;
+
 use std::ops::Div;
 
 use crate::units::Float;
