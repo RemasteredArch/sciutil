@@ -579,9 +579,12 @@ impl Display for Digits {
     }
 }
 
+/// Represents a float-point value split at the dot.
 pub type SplitFloat = (Sign, Box<[Digit]>, Box<[Digit]>);
 
-/// Negative distances are head left away from `.`, positive values are heading right:
+/// Represents the "place" (position) of a digit in a number.
+///
+/// Negative distances are head left away from the dot, positive values are heading right:
 ///
 /// - `-1` is the ones place, `-2` the tens place, `-3` the hundreds place, etc.
 /// - `1` is the tenths place, `2` is the tenths place, `3` is the hundredths place, etc.
