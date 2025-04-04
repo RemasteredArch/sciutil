@@ -93,7 +93,7 @@ fn central_difference_derivative<T: Float, F: Float>(
 /// # use sciutil::statistics::derivatives;
 /// #
 /// // `sin(t)` from `t = 0` to `t = 2`.
-/// let list = (0..10)
+/// let list = (0..=10)
 ///     .map(|i| {
 ///         let t = f64::from(i) * 0.2;
 ///         (t, t.sin())
@@ -108,13 +108,12 @@ fn central_difference_derivative<T: Float, F: Float>(
 /// let result = derivatives::first_order(&list);
 /// assert_eq!(result.len(), actual.len());
 ///
-/// // Your data may have more error than this!
+/// // Your data may have more or less error than this!
 /// let accepted_error = 0.1;
+/// // Assert that the two values are within `accepted_error` of each other.
+/// let eq = |t, error, a: f64, b: f64| assert!((a - b).abs() <= error, "{a} != {b} @ {t}");
 ///
 /// for i in 0..result.len() {
-///     // Assert that the two values are within `accepted_error` of each other.
-///     let eq = |t, error, a: f64, b: f64| assert!((a - b).abs() <= error, "{a} != {b} @ {t}");
-///
 ///     let (t, derivative) = actual[i];
 ///     let (result_t, result_derivative) = result[i];
 ///
@@ -160,9 +159,8 @@ pub fn first_order<T: Float, F: Float>(list: &[(T, F)]) -> Box<[(T, f64)]> {
 /// # use std::num::NonZeroU32;
 /// # use sciutil::statistics::derivatives;
 /// #
-/// // TODO: not actually to 2, this is to 1.8
 /// // `sin(t)` from `t = 0` to `t = 2`.
-/// let list = (0..10)
+/// let list = (0..=10)
 ///     .map(|i| {
 ///         let t = f64::from(i) * 0.2;
 ///         (t, t.sin())
@@ -181,12 +179,16 @@ pub fn first_order<T: Float, F: Float>(list: &[(T, F)]) -> Box<[(T, f64)]> {
 /// dbg!(&actual, &result);
 /// dbg!(derivatives::first_order(&list));
 ///
-/// // Your data may have more error than this!
-/// let accepted_error = 0.3;
+/// // Your data may have more or less error than this!
+/// let mut accepted_error = 0.1;
+/// // Assert that the two values are within `accepted_error` of each other.
+/// let eq = |t, error, a: f64, b: f64| assert!((a - b).abs() <= error, "{a} != {b} @ {t}");
 ///
 /// for i in 0..result.len() {
-///     // Assert that the two values are within `accepted_error` of each other.
-///     let eq = |t, error, a: f64, b: f64| assert!((a - b).abs() <= error, "{a} != {b} @ {t}");
+///     // The last two points have significantly higher error, unfortunately.
+///     if i == result.len() - 2 {
+///         accepted_error = 0.5;
+///     }
 ///
 ///     let (t, derivative) = actual[i];
 ///     let (result_t, result_derivative) = result[i];
