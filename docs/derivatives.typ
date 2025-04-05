@@ -241,6 +241,7 @@
 
 #show link: text.with(blue)
 #show link: underline.with(offset: 0.15em)
+#let url(url, breakable: false) = box(block(breakable: breakable)[\<#link(url)>])
 
 #set page(
   paper: "us-letter",
@@ -257,11 +258,73 @@
 
 #title[#title_text]
 
-= Time shifted
+= Introduction
 
-== First order
+This document covers the math behind the code for numeric derivatives in sciutil.
 
-Time shifted derivatives estimate the derivative at the start of a time interval ($f^pr_2$)
+This document assumes basic calculus knowledge.
+Steve Brunton's YouTube video
+"Calculus Review: The Derivative (and the Power Law and Chain Rule)"
+#url("https://youtu.be/-NhgElcA3K8")
+may be worth a watch if you are unfamiliar with calculus.
+I have not watched this video and thus cannot vouch for it in confidence,
+but I found his videos on numeric differentiation to be excellent.
+Alternatively,
+3Blue1Brown's YouTube course "Essence of calculus"
+#url("https://www.youtube.com/playlist?list=PLZHQObOWTQDMsr9K-rj53DwVRMYO3t5Yr")
+comes highly reviewed,
+and I can vouch for the first few videos being excellent.
+
+== Notation
+
+For the unfamiliar, here are a few notable pieces of notation used in this document:
+
+#[
+  #set par(
+    // Wider line spacing (default is `0.65em`).
+    leading: 0.65 * 1.5em,
+  )
+
+  - $t$ is the independent variable, $f$ is the dependent variable.
+    These are equivalent to $x$ and $y$, respectively.
+    - Derivatives are noted with "primes",
+      so the first derivative ("first-order") is $f pr$,
+      the second ("second-order") is $f prd$,
+      and the third is $f prt$.
+      Higher-order derivatives are noted with digits in parentheses.
+      The fourth derivative is $f^((4))$, for example.
+  - Subscripts hold different modifiers, separated by commas.
+    They denote indices, intervals, averages, midpoints, etc.
+    - For example, $t_1$ is the first item in the list $t$
+      (lists are 1-indexed).
+  - $Delta$ refers to change in a variable over some interval.
+    For example, $Dt_(1, 2) = t_2 - t_1$.
+  - In subscripts, two-digit numbers refer to intervals,
+    dropping the comma for convenience.
+    For example,
+    $Dt_12 = Dt_(1, 2) = t_2 - t_1$.
+    - "$avg$" in subscripts denotes the average value over this interval.
+      For example, $f_(avg, 12) = (f_1 + f_2) / Dt_12$.
+    - Similarly,
+      "$"mid"$" in subscripts denotes the midpoint in this interval.
+      For example, $t_("mid", 12) = (t_1 + t_2) / 2$.
+  - $because$ is shorthand for "because."
+    This is used to justify a claim.
+]
+
+= Time-shifted derivatives
+
+Time-shifted derivatives recognize that traditional "rise over run" derivatives
+calculate the average derivative over a time interval ($f^pr_("avg", 23)$),
+not the derivative precisely at the start of the time interval ($f^pr_2$).
+This technique comes from
+William Leonard's article "Dangers of Automated Data Analysis,"
+pub. _The Physics Teacher,_ vol. 35, April 1996, pp. 220--222,
+#link("https://doi.org/10.1119/1.2344655")[DOI 10.1119/1.2344655].
+
+== First-order
+
+Time-shifted derivatives estimate the derivative at the start of a time interval ($f^pr_2$)
 instead of the average of a time interval ($f^pr_("avg", 23)$).
 
 The precise equation is as follows.
@@ -277,11 +340,6 @@ Where:
 
 - $f^pr_(avg, 23) = Df_23 / Dt_23 = (f_3 - f_2) / (t_3 - t_2)$
 
-
-This technique comes from
-William Leonard's "The Dangers of Automated Data Analysis,"
-pub. _The Physics Teacher,_ vol. 35, April 1996, p. 220.
-
 The precise equation comes from linear interpolation.
 It interpolates between the average derivatives
 (the usual manner of finding a numeric derivative)
@@ -291,24 +349,59 @@ For the curious,
 I will derive this equation on the following page.
 For the sake of notational simplicity,
 I will use simple $x$ and $y$ terms
-when expanding linear interpolation,
+when expanding linear interpolation
+(finding some $(x, y)$ between $(x_1, y_1)$ and $(x_2, y_2)$),
 then plug in the exact variables and time intervals used
 for further simplification.
 
 $$$
-  (y - y_0) / (x - x_0) &= (y_1 - y_0) / (x_1 - x_0) &&because "linear interpolation"\
-  y - y_0 &= (x - x_0) (y_1 - y_0) / (x_1 - x_0)\
-  y &= (x - x_0) (y_1 - y_0) / (x_1 - x_0) + y_0\
-  y &= (x - x_0) (y_1 - y_0) / (x_1 - x_0) + (x_1 - x_0) / (x_1 - x_0) y_0\
-  y &= ((x - x_0) (y_1 - y_0) + (x_1 - x_0) y_0) / (x_1 - x_0)\
-  y &= ((x y_1 - x y_0 - x_0 y_1 + x_0 y_0) + (x_1 y_0 - x_0 y_0)) / (x_1 - x_0)\
-  y &= ((x y_1 - x_0 y_1) + (-x y_0 + x_0 y_0 + x_1 y_0 - x_0 y_0)) / (x_1 - x_0)\
-  y &= (y_1 (x - x_0) + y_0 (-x + x_0 + x_1 - x_0)) / (x_1 - x_0)\
-  y &= (y_1 (x - x_0) + y_0 (x_1 - x)) / (x_1 - x_0) &&(<- "this is also just linear interpolation")\
+  (y - y_1) / (x - x_1) &= (y_2 - y_1) / (x_2 - x_1) &&because "linear interpolation"\
+  y - y_1 &= (x - x_1) (y_2 - y_1) / (x_2 - x_1)\
+  y &= (x - x_1) (y_2 - y_1) / (x_2 - x_1) + y_1\
+  y &= (x - x_1) (y_2 - y_1) / (x_2 - x_1) + (x_2 - x_1) / (x_2 - x_1) y_1\
+  y &= ((x - x_1) (y_2 - y_1) + (x_2 - x_1) y_1) / (x_2 - x_1)\
+  y &= ((x y_2 - x y_1 - x_1 y_2 + x_1 y_1) + (x_2 y_1 - x_1 y_1)) / (x_2 - x_1)\
+  y &= ((x y_2 - x_1 y_2) + (-x y_1 + x_1 y_1 + x_2 y_1 - x_1 y_1)) / (x_2 - x_1)\
+  y &= (y_2 (x - x_1) + y_1 (-x + x_1 + x_2 - x_1)) / (x_2 - x_1)\
+  y &= (y_2 (x - x_1) + y_1 (x_2 - x)) / (x_2 - x_1) &&(<- "this is also just linear interpolation")\
   f^pr_2 &= (f^pr_(avg, 23) (t_2 - t_("mid", 12)) + f^pr_(avg, 12) (t_("mid", 23) - t_2)) / (t_("mid", 23) - t_("mid", 12)) &&because "see Fig. 2 in the article"\
   f^pr_2 &= (f^pr_(avg, 23) (t_2 - (t_1 + t_2) / 2) + f^pr_(avg, 12) ((t_2 + t_3) / 2 - t_2)) / ((t_2 + t_3) / 2 - (t_1 + t_2) / 2)\
   f^pr_2 &= (f^pr_(avg, 23) (2)(t_2 - (t_1 + t_2) / 2) + f^pr_(avg, 12) (2)((t_2 + t_3) / 2 - t_2)) / ((t_2 + t_3) - (t_1 + t_2))\
   f^pr_2 &= (f^pr_(avg, 23) (2 t_2 - t_1 - t_2) + f^pr_(avg, 12) (t_2 + t_3 - 2t_2)) / (t_3 - t_1)\
   f^pr_2 &= (f^pr_(avg, 23) (t_2 - t_1) + f^pr_(avg, 12) (t_3 - t_2)) / (t_3 - t_1)\
   f^pr_2 &= (f^pr_(avg, 23) Dt_12 + f^pr_(avg, 12) Dt_23) / Dt_13\
+$$$
+
+== Second-order
+
+Time-shifted derivatives recognize that traditional "rise over run" derivatives
+calculate the average derivative over a time interval ($f^pr_("avg", 23)$).
+A first-order time-shifted derivative estimates the derivative at the start of a time interval ($f^pr_2$),
+but the second-order time-shifted derivative is much simpler.
+
+The precise equation is as follows.
+For example, $t$ might be time, $f$ position, $f pr$ velocity, and $f prd$ acceleration.
+
+$$$
+  f^prd_2 &= 2 (f^pr_(avg, 23) - f^pr_(avg, 12)) / (t_3 - t_1)\
+$$$
+
+Where:
+
+- $f^pr_(avg, 12) = Df_12 / Dt_12 = (f_2 - f_1) / (t_2 - t_1)$
+
+- $f^pr_(avg, 23) = Df_23 / Dt_23 = (f_3 - f_2) / (t_3 - t_2)$
+
+For the curious, I will derive this now.
+This is a much simpler process for the second-order time-shifted derivative
+than first-order time-shifted derivative.
+It is just a central difference derivative
+oriented around $t_("mid", 12)$ and $t_("mid", 23)$
+instead of $t_1$ and $t_3$.
+
+$$$
+  f^prd_2 &= (f^pr_(avg, 23) - f^pr_(avg, 12)) / (t_("mid", 23) - t_("mid", 12))\
+  f^prd_2 &= (f^pr_(avg, 23) - f^pr_(avg, 12)) / ((t_3 + t_2) / 2 - (t_2 + t_1) / 2)\
+  f^prd_2 &= (f^pr_(avg, 23) - f^pr_(avg, 12)) / (1 / 2 (t_3 + t_2 - t_2 - t_1))\
+  f^prd_2 &= 2 (f^pr_(avg, 23) - f^pr_(avg, 12)) / (t_3 - t_1)\
 $$$
