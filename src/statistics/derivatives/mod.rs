@@ -212,12 +212,12 @@ pub fn nth_order<T: Float, F: Float>(order: NonZeroU32, list: &[(T, F)]) -> Box<
     derivative
 }
 
-/// Calculates the numerical derivative of `F` with respect to `T` at `index` using time shifted
+/// Calculates the numerical derivative of `F` with respect to `T` at `index` using time-shifted
 /// data points.
 ///
 /// Traditional "rise over run" derivatives calculate the average derivative, at the center of a
 /// time interval. This estimates the derivative at the _start_ of an interval. See
-/// [`central_difference_derivative`] for a more traditional derivative without this time shifting.
+/// [`central_difference_derivative`] for a more traditional derivative without this time-shifting.
 ///
 /// Here's the math written out as a Typst expression, calculating velocity from change in position
 /// over time:
@@ -273,7 +273,7 @@ fn derivative_time_shifted<T: Float, F: Float>(index: usize, list: &[(T, F)]) ->
     ))
 }
 
-/// Calculates the numerical derivative of `F` with respect to `T` using time shifted data points.
+/// Calculates the numerical derivative of `F` with respect to `T` using time-shifted data points.
 ///
 /// Does not include the first or last data points.
 ///
@@ -447,7 +447,7 @@ fn second_derivative_time_shifted<T: Float, F: Float>(
     ))
 }
 
-/// Calculates the numerical derivative of `F` with respect to `T` using time shifted data points.
+/// Calculates the numerical derivative of `F` with respect to `T` using time-shifted data points.
 ///
 /// Does not include the first or last data points.
 ///
