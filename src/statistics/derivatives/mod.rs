@@ -7,6 +7,8 @@
 // <https://mozilla.org/MPL/2.0/>.
 
 //! `derivatives`: Calculate numeric derivatives of real data.
+//!
+//! For details on the math behind these algorithms, see the Typst document `/doc/derivatives.typ`.
 
 #[cfg(test)]
 mod test;
@@ -234,8 +236,9 @@ pub fn nth_order<T: Float, F: Float>(order: NonZeroU32, list: &[(T, F)]) -> Box<
 /// $$$
 /// ```
 ///
-/// For more, see William Leonard's "The Dangers of Automated Data Analysis," pub. _The Physics
-/// Teacher,_ vol. 35, April 1996, p. 220.
+/// For details, see the Typst document `/doc/derivatives.typ`. It explains the math further and
+/// derives it. The math is based on William Leonard's article "Dangers of Automated Data
+/// Analysis," pub. _The Physics Teacher,_ vol. 35, April 1996, pp. 220-222.
 ///
 /// # Errors
 ///
@@ -277,8 +280,9 @@ fn derivative_time_shifted<T: Float, F: Float>(index: usize, list: &[(T, F)]) ->
 /// Traditional "rise over run" derivatives calculate the average derivative, at the center of a
 /// time interval. This estimates the derivative at the _start_ of an interval.
 ///
-/// For more, see William Leonard's "The Dangers of Automated Data Analysis," pub. _The Physics
-/// Teacher,_ vol. 35, April 1996, p. 220.
+/// For details, see the Typst document `/doc/derivatives.typ`. It explains the math further and
+/// derives it. The math is based on William Leonard's article "Dangers of Automated Data
+/// Analysis," pub. _The Physics Teacher,_ vol. 35, April 1996, pp. 220-222.
 ///
 /// # Examples
 ///
@@ -411,9 +415,9 @@ pub fn first_order_time_shifted<T: Float, F: Float>(list: &[(T, F)]) -> Box<[(T,
 /// $$$
 /// ```
 ///
-// TODO: refer to the Typst document instead?
-/// For more, see William Leonard's "The Dangers of Automated Data Analysis," pub. _The Physics
-/// Teacher,_ vol. 35, April 1996, p. 220.
+/// For details, see the Typst document `/doc/derivatives.typ`. It explains the math further and
+/// derives it. The math is based on William Leonard's article "Dangers of Automated Data
+/// Analysis," pub. _The Physics Teacher,_ vol. 35, April 1996, pp. 220-222.
 ///
 /// # Errors
 ///
@@ -450,8 +454,9 @@ fn second_derivative_time_shifted<T: Float, F: Float>(
 /// Traditional "rise over run" derivatives calculate the average derivative, at the center of a
 /// time interval. This estimates the derivative at the _start_ of an interval.
 ///
-/// For more, see William Leonard's "The Dangers of Automated Data Analysis," pub. _The Physics
-/// Teacher,_ vol. 35, April 1996, p. 220.
+/// For details, see the Typst document `/doc/derivatives.typ`. It explains the math further and
+/// derives it. The math is based on William Leonard's article "Dangers of Automated Data
+/// Analysis," pub. _The Physics Teacher,_ vol. 35, April 1996, pp. 220-222.
 ///
 /// # Examples
 ///
