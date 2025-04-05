@@ -241,7 +241,7 @@ pub fn nth_order<T: Float, F: Float>(order: NonZeroU32, list: &[(T, F)]) -> Box<
 ///
 /// Returns [`None`] if `index`, `index - 1`, or `index + 1` is out of bounds in `list`.
 #[must_use]
-fn derivative_time_shift<T: Float, F: Float>(index: usize, list: &[(T, F)]) -> Option<(T, f64)> {
+fn derivative_time_shifted<T: Float, F: Float>(index: usize, list: &[(T, F)]) -> Option<(T, f64)> {
     if index == 0 {
         return None;
     }
@@ -367,7 +367,7 @@ fn derivative_time_shift<T: Float, F: Float>(index: usize, list: &[(T, F)]) -> O
 ///
 ///     // The independent variables should remain unchanged.
 ///     eq(t, effectively_equal, result_t, t);
-///     // The derivatives should be within `accepted_error`.
+///     // The derivatives should be effectively equal.
 ///     eq(t, effectively_equal, result_derivative, derivative);
 /// }
 /// ```
@@ -382,8 +382,9 @@ pub fn first_order_time_shifted<T: Float, F: Float>(list: &[(T, F)]) -> Box<[(T,
 
     // Skips the first and last index.
     for i in 1..(list.len() - 1) {
-        derivative
-            .push(derivative_time_shift(i, list).expect("`1 < i < list.len() - 1`, this is safe"));
+        derivative.push(
+            derivative_time_shifted(i, list).expect("`1 < i < list.len() - 1`, this is safe"),
+        );
     }
 
     derivative.into_boxed_slice()
