@@ -24,8 +24,6 @@
 #![warn(clippy::nursery, clippy::pedantic)]
 
 pub mod display;
-// #[cfg(feature = "plotting")]
-pub mod plotting;
 pub mod rounding;
 pub mod statistics;
 pub mod units;
