@@ -11,8 +11,10 @@
 //! ## Features
 //!
 //! - [`rounding`]: Facilities for rounding floating-point values.
-//! - [`units`]: Wrapper structs to mark arbitrary floating-point values as SI units.
+//! - [`units`]: Traits and wrapper structs for treating floating-point values as physical
+//!   measurements.
 //! - [`statistics`]: List operations for statistics.
+//!   - [`statistics::derivatives`]: A few forms of numeric derivatives.
 //! - [`display`]: Miscellaneous facilities for pretty-printing things.
 //!
 //! ## License

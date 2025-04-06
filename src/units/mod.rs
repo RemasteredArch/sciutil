@@ -6,7 +6,8 @@
 // copy of the Mozilla Public License was not distributed with this file, You can obtain one at
 // <https://mozilla.org/MPL/2.0/>.
 
-//! `units`: Wrapper structs to mark arbitrary floating-point values as SI units.
+//! `units`: Traits and wrapper structs to mark arbitrary floating-point values as physical
+//! measurements.
 //!
 //! In particular, see [`Float`], [`UncertainFloat`], and [`Per`].
 
