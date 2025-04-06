@@ -18,7 +18,7 @@ use crate::units::Float;
 ///
 /// # Errors
 ///
-/// Returns [`f64::NAN`] if `list.len() == 1`.
+/// Returns a [`f64::NAN`] if `list.len() == 0`.
 ///
 /// # Examples
 ///
@@ -60,7 +60,7 @@ pub fn mean<F: Float>(list: &[F]) -> F {
 ///
 /// # Errors
 ///
-/// Returns [`f64::NAN`] if `list.len() == 1`.
+/// Returns a [`f64::NAN`] if `list.len() == 1`.
 ///
 /// # Examples
 ///
