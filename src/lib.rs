@@ -19,11 +19,13 @@
 //!
 //! Sciutil is licensed under the Mozilla Public License, version 2.0 or (as the license
 //! stipulates) any later version. A copy of the license should be distributed with sciutil,
-//! located at [`LICENSE`](./LICENSE), or you can obtain one at <https://mozilla.org/MPL/2.0/>.
+//! located at `LICENSE`, or you can obtain one at <https://mozilla.org/MPL/2.0/>.
 
 #![warn(clippy::nursery, clippy::pedantic)]
 
 pub mod display;
+// #[cfg(feature = "plotting")]
+pub mod plotting;
 pub mod rounding;
 pub mod statistics;
 pub mod units;
