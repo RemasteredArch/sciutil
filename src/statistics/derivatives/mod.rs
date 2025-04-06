@@ -24,18 +24,19 @@ use std::num::NonZeroU32;
 ///
 /// # Errors
 ///
-/// Returns [`None`] if `index` or `index + 1` is out of bounds in `list`.
+/// - Returns [`None`] if `index` or `index + 1` is out of bounds in `list`.
+/// - Returns [`f64::INFINITY`] as the derivative if `t` at `index` is equal to `t` at `index + 1`.
 #[must_use]
 fn forward_difference_derivative<T: Float, F: Float>(
     index: usize,
     list: &[(T, F)],
 ) -> Option<(T, f64)> {
     let (t_1, f_1) = list.get(index)?;
-    let (t_2, f_2) = list.get(index + 1)?;
+    let (t_3, f_3) = list.get(index + 1)?;
 
     Some((
         T::new(t_1.get()),
-        (f_2.get() - f_1.get()) / (t_2.get() - t_1.get()),
+        (f_3.get() - f_1.get()) / (t_3.get() - t_1.get()),
     ))
 }
 
@@ -46,7 +47,8 @@ fn forward_difference_derivative<T: Float, F: Float>(
 ///
 /// # Errors
 ///
-/// Returns [`None`] if `index` or `index - 1` is out of bounds in `list`.
+/// - Returns [`None`] if `index` or `index - 1` is out of bounds in `list`.
+/// - Returns [`f64::INFINITY`] as the derivative if `t` at `index` is equal to `t` at `index - 1`.
 #[must_use]
 fn backward_difference_derivative<T: Float, F: Float>(
     index: usize,
@@ -70,7 +72,9 @@ fn backward_difference_derivative<T: Float, F: Float>(
 ///
 /// # Errors
 ///
-/// Returns [`None`] if `index - 1` or `index + 1` is out of bounds in `list`.
+/// - Returns [`None`] if `index - 1` or `index + 1` is out of bounds in `list`.
+/// - Returns [`f64::INFINITY`] as the derivative if `t` at `index - 1` is equal to `t` at
+///   `index + 1`.
 #[must_use]
 fn central_difference_derivative<T: Float, F: Float>(
     index: usize,
@@ -89,7 +93,16 @@ fn central_difference_derivative<T: Float, F: Float>(
 
 /// Calculates the numerical derivative of `F` with respect to `T`.
 ///
+/// Assumes that the list is sorted by ascending `T` values (smallest first, largest last).
+///
+/// # Errors
+///
+/// - `list.len() < 2` returns an empty list.
+/// - Overlapping `T` values will return [`f64::INFINITY`] as their derivative.
+///
 /// # Examples
+///
+/// Expected behavior:
 ///
 /// ```rust
 /// # use sciutil::statistics::derivatives;
@@ -125,6 +138,21 @@ fn central_difference_derivative<T: Float, F: Float>(
 ///     eq(t, accepted_error, result_derivative, derivative);
 /// }
 /// ```
+///
+/// Overlapping values cause infinite derivatives:
+///
+/// ```rust
+/// # use sciutil::statistics::derivatives;
+/// #
+/// let list = &[(1.0, 1.0), (1.0, 3.0), (1.0, 5.0)];
+/// let result = derivatives::first_order(list);
+/// assert_eq!(list.len(), result.len());
+///
+/// for (independent, derivative) in result {
+///     assert_eq!(independent, 1.0);
+///     assert!(derivative.is_infinite());
+/// }
+/// ```
 #[must_use]
 #[expect(clippy::missing_panics_doc, reason = "see `expect` string")]
 pub fn first_order<T: Float, F: Float>(list: &[(T, F)]) -> Box<[(T, f64)]> {
@@ -154,6 +182,15 @@ pub fn first_order<T: Float, F: Float>(list: &[(T, F)]) -> Box<[(T, f64)]> {
 }
 
 /// Calculates the nth numerical derivative of `F` with respect to `T`.
+///
+/// Assumes that the list is sorted by ascending `T` values (smallest first, largest last).
+///
+/// # Errors
+///
+/// - `list.len() < 2` returns an empty list.
+/// - Overlapping `T` values will return unusual values.
+///   - First-order derivatives will return [`f64::INFINITY`] as their derivative.
+///   - Higher-order derivatives return a [`f64::NAN`] as their nth derivative.
 ///
 /// # Examples
 ///
@@ -201,6 +238,34 @@ pub fn first_order<T: Float, F: Float>(list: &[(T, F)]) -> Box<[(T, f64)]> {
 ///     eq(t, accepted_error, result_derivative, derivative);
 /// }
 /// ```
+///
+/// Overlapping values cause infinite or NaN derivatives:
+///
+/// ```rust
+/// # use sciutil::statistics::derivatives;
+/// #
+/// # use std::num::NonZeroU32;
+/// #
+/// let list = &[(1.0, 1.0), (1.0, 3.0), (1.0, 5.0)];
+///
+/// // Orders greater than one cause NaN.
+/// let result = derivatives::nth_order(NonZeroU32::new(2).unwrap(), list);
+/// assert_eq!(list.len(), result.len());
+///
+/// for (independent, derivative) in result {
+///     assert_eq!(independent, 1.0);
+///     assert!(derivative.is_nan());
+/// }
+///
+/// // First derivatives cause infinity.
+/// let result = derivatives::nth_order(NonZeroU32::new(1).unwrap(), list);
+/// assert_eq!(list.len(), result.len());
+///
+/// for (independent, derivative) in result {
+///     assert_eq!(independent, 1.0);
+///     assert!(derivative.is_infinite());
+/// }
+/// ```
 #[must_use]
 pub fn nth_order<T: Float, F: Float>(order: NonZeroU32, list: &[(T, F)]) -> Box<[(T, f64)]> {
     let mut derivative: Box<_> = first_order(list);
@@ -214,6 +279,9 @@ pub fn nth_order<T: Float, F: Float>(order: NonZeroU32, list: &[(T, F)]) -> Box<
 
 /// Calculates the numerical derivative of `F` with respect to `T` at `index` using time-shifted
 /// data points.
+///
+/// - Does not include the first or last data points.
+/// - Assumes that the list is sorted by ascending `T` values (smallest first, largest last).
 ///
 /// Traditional "rise over run" derivatives calculate the average derivative, at the center of a
 /// time interval. This estimates the derivative at the _start_ of an interval. See
@@ -242,7 +310,8 @@ pub fn nth_order<T: Float, F: Float>(order: NonZeroU32, list: &[(T, F)]) -> Box<
 ///
 /// # Errors
 ///
-/// Returns [`None`] if `index - 1`, or `index + 1` is out of bounds in `list`.
+/// - Returns [`None`] if `index - 1`, or `index + 1` is out of bounds in `list`.
+/// - Overlapping `T` values will return a [`f64::NAN`] as their derivative.
 #[must_use]
 fn derivative_time_shifted<T: Float, F: Float>(index: usize, list: &[(T, F)]) -> Option<(T, f64)> {
     let get = |index: usize| {
@@ -275,7 +344,8 @@ fn derivative_time_shifted<T: Float, F: Float>(index: usize, list: &[(T, F)]) ->
 
 /// Calculates the numerical derivative of `F` with respect to `T` using time-shifted data points.
 ///
-/// Does not include the first or last data points.
+/// - Does not include the first or last data points.
+/// - Assumes that the list is sorted by ascending `T` values (smallest first, largest last).
 ///
 /// Traditional "rise over run" derivatives calculate the average derivative, at the center of a
 /// time interval. This estimates the derivative at the _start_ of an interval.
@@ -283,6 +353,11 @@ fn derivative_time_shifted<T: Float, F: Float>(index: usize, list: &[(T, F)]) ->
 /// For details, see the Typst document `/doc/derivatives.typ`. It explains the math further and
 /// derives it. The math is based on William Leonard's article "Dangers of Automated Data
 /// Analysis," pub. _The Physics Teacher,_ vol. 35, April 1996, pp. 220-222.
+///
+/// # Errors
+///
+/// - Overlapping `T` values will return a [`f64::NAN`] as their derivative.
+/// - `list.len() < 3` returns an empty list.
 ///
 /// # Examples
 ///
@@ -371,6 +446,21 @@ fn derivative_time_shifted<T: Float, F: Float>(index: usize, list: &[(T, F)]) ->
 ///     eq(t, effectively_equal, result_derivative, derivative);
 /// }
 /// ```
+///
+/// Overlapping values cause NaN derivatives:
+///
+/// ```rust
+/// # use sciutil::statistics::derivatives;
+/// #
+/// let list = &[(1.0, 1.0), (1.0, 3.0), (1.0, 5.0)];
+/// let result = derivatives::first_order_time_shifted(list);
+/// assert_eq!(list.len() - 2, result.len());
+///
+/// for (independent, derivative) in result {
+///     assert_eq!(independent, 1.0);
+///     assert!(derivative.is_nan());
+/// }
+/// ```
 #[must_use]
 #[expect(clippy::missing_panics_doc, reason = "see `expect` string")]
 pub fn first_order_time_shifted<T: Float, F: Float>(list: &[(T, F)]) -> Box<[(T, f64)]> {
@@ -392,6 +482,8 @@ pub fn first_order_time_shifted<T: Float, F: Float>(list: &[(T, F)]) -> Box<[(T,
 
 /// Calculates the numerical second derivative of `F` with respect to `T` at `index` using
 /// time-shifted data points.
+///
+/// Assumes that the list is sorted by ascending `T` values (smallest first, largest last).
 ///
 /// This recognizes that traditional "rise over run" derivatives calculate the average derivative,
 /// at the center of a time interval. It is a normal [`central_difference_derivative`] of the
@@ -421,7 +513,8 @@ pub fn first_order_time_shifted<T: Float, F: Float>(list: &[(T, F)]) -> Box<[(T,
 ///
 /// # Errors
 ///
-/// Returns [`None`] if `index - 1` or `index + 1` is out of bounds in `list`.
+/// - Returns [`None`] if `index - 1` or `index + 1` is out of bounds in `list`.
+/// - Overlapping `T` values will return a [`f64::NAN`] as their second derivative.
 #[must_use]
 fn second_derivative_time_shifted<T: Float, F: Float>(
     index: usize,
@@ -449,7 +542,8 @@ fn second_derivative_time_shifted<T: Float, F: Float>(
 
 /// Calculates the numerical derivative of `F` with respect to `T` using time-shifted data points.
 ///
-/// Does not include the first or last data points.
+/// - Does not include the first or last data points.
+/// - Assumes that the list is sorted by ascending `T` values (smallest first, largest last).
 ///
 /// Traditional "rise over run" derivatives calculate the average derivative, at the center of a
 /// time interval. This estimates the derivative at the _start_ of an interval.
@@ -457,6 +551,11 @@ fn second_derivative_time_shifted<T: Float, F: Float>(
 /// For details, see the Typst document `/doc/derivatives.typ`. It explains the math further and
 /// derives it. The math is based on William Leonard's article "Dangers of Automated Data
 /// Analysis," pub. _The Physics Teacher,_ vol. 35, April 1996, pp. 220-222.
+///
+/// # Errors
+///
+/// - `list.len() < 3` returns an empty list.
+/// - Overlapping `T` values will return a [`f64::NAN`] as their second derivative.
 ///
 /// # Examples
 ///
@@ -543,6 +642,21 @@ fn second_derivative_time_shifted<T: Float, F: Float>(
 ///     eq(t, effectively_equal, result_t, t);
 ///     // The derivatives should be effectively equal.
 ///     eq(t, effectively_equal, result_derivative, derivative);
+/// }
+/// ```
+///
+/// Overlapping values cause NaN derivatives:
+///
+/// ```rust
+/// # use sciutil::statistics::derivatives;
+/// #
+/// let list = &[(1.0, 1.0), (1.0, 3.0), (1.0, 5.0)];
+/// let result = derivatives::second_order_time_shifted(list);
+/// assert_eq!(list.len() - 2, result.len());
+///
+/// for (independent, derivative) in result {
+///     assert_eq!(independent, 1.0);
+///     assert!(derivative.is_nan());
 /// }
 /// ```
 #[must_use]
