@@ -259,7 +259,7 @@ impl Digits {
     }
 
     /// Converts [`Self`] into a [`SplitFloat`], splitting the digits on the left and right side of
-    /// the [`Self::dot`].
+    /// this [`Self`]'s dot.
     #[must_use]
     pub fn to_split(&self) -> SplitFloat {
         let lhs = self.digits[0..self.dot].to_vec().into_boxed_slice();
@@ -462,7 +462,7 @@ impl Digits {
     }
 
     /// Converts a digit index (oriented the list of digits, specific to this [`Self`]) to a
-    /// generic [`Place`] (oriented around [`Self::dot`]).
+    /// generic [`Place`] (oriented around this [`Self`]'s dot).
     #[expect(clippy::missing_panics_doc, reason = "see `expect` string")]
     #[must_use]
     pub const fn digit_index_to_place(&self, digit_index: usize) -> Place {
@@ -483,10 +483,11 @@ impl Digits {
         .expect("`a - b == 0` only when `a == b`, but `place = a - b + 1` when that is true")
     }
 
-    /// Converts a generic [`Place`] (oriented around [`Self::dot`]) to a digit index (oriented
-    /// around the list of digits, specific to this [`Self`]).
+    /// Converts a generic [`Place`] (oriented around this [`Self`]'s dot) to a digit index
+    /// (oriented around the list of digits, specific to this [`Self`]).
     ///
-    /// Returns [`None`] if the provided [`Place`] exists outside of the range of [`Self::digits`].
+    /// Returns [`None`] if the provided [`Place`] exists outside of the range of this [`Self`]'s
+    /// list of digits.
     #[must_use]
     pub fn place_to_digit_index(&self, place: Place) -> Option<usize> {
         // Zero represents the dot for [`Place`] values, but the digit after the dot for digit
