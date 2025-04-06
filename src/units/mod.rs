@@ -8,10 +8,16 @@
 
 //! `units`: Wrapper structs to mark arbitrary floating-point values as SI units.
 //!
-//! In particular, see [`Float`] and [`UncertainFloat`].
+//! In particular, see [`Float`], [`UncertainFloat`], and [`Per`].
 
 use std::{fmt::Display, marker::PhantomData};
 
+/// Contains or represents a floating-point value, optionally with physical units.
+///
+/// Designed to allow generically handling wrapper structs that embed physical units into the type,
+/// such as [`Seconds`] marking an otherwise arbitrary [`f64`] as representing the SI unit of
+/// seconds. This unit information is optional, so that plain [`f64`] (and other unit-less types)
+/// can implement it.
 pub trait Float: From<f64> + Into<f64> {
     /// Constructs a new instance of [`Self`].
     #[must_use]
@@ -74,7 +80,7 @@ impl Float for f64 {
 /// # Examples
 ///
 /// ```rust
-/// # use sciutil::units::{Float, UncertainFloat};
+/// # use sciutil::units::UncertainFloat;
 /// #
 /// let with_uncertainty = UncertainFloat::new(5.0, 1.0);
 /// assert_eq!(with_uncertainty.min(), 4.0);
@@ -141,6 +147,8 @@ impl<F: Float> UncertainFloat<F> {
 pub struct Per<F: Float, T: Float, const P: usize>(f64, PhantomData<F>, PhantomData<T>);
 
 impl<F: Float, T: Float, const P: usize> Per<F, T, P> {
+    /// Returns the full pretty name of the unit represented by [`Self`], if there is one.
+    ///
     /// ```rust
     /// # use sciutil::units::{Float, Meters, Per, Seconds};
     /// #
@@ -176,6 +184,9 @@ impl<F: Float, T: Float, const P: usize> Per<F, T, P> {
         ))
     }
 
+    /// Returns the short, symbolic textual representation of the unit represented by [`Self`], if
+    /// there is one.
+    ///
     /// ```rust
     /// # use sciutil::units::{Float, Meters, Per, Seconds};
     /// #
@@ -183,7 +194,7 @@ impl<F: Float, T: Float, const P: usize> Per<F, T, P> {
     /// type Acceleration = Per<Meters, Seconds, 2>;
     /// assert_eq!(Acceleration::symbol(), Some("m / s^2".to_string()));
     ///
-    /// // Either parameter not having a name disables any units:
+    /// // Either parameter not having a symbol disables any units:
     /// assert_eq!(Per::<Meters, f64, 2>::symbol(), None);
     ///
     /// // More power-dependent formatting:
@@ -222,11 +233,11 @@ impl<F: Float, T: Float, const P: usize> Display for Per<F, T, P> {
 }
 
 impl<F: Float, T: Float, const P: usize> Float for Per<F, T, P> {
-    /// See [`Self::name`].
+    /// See [`Self::name`] instead.
     const NAME_SINGLE: Option<&str> = None;
-    /// See [`Self::name`].
+    /// See [`Self::name`] instead.
     const NAME_PLURAL: Option<&str> = None;
-    /// See [`Self::symbol`].
+    /// See [`Self::symbol`] instead.
     const SYMBOL: Option<&str> = None;
 
     fn new(value: f64) -> Self {
