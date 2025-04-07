@@ -6,9 +6,10 @@
 // copy of the Mozilla Public License was not distributed with this file, You can obtain one at
 // <https://mozilla.org/MPL/2.0/>.
 
-//! `derivatives`: Calculate numeric derivatives of real data.
+//! `derivatives`: Calculate numerical derivatives of real data.
 //!
-//! For details on the math behind these algorithms, see the Typst document `/doc/derivatives.typ`.
+//! For details on the math behind these algorithms, see the Typst document
+//! `/docs/derivatives.typ`.
 
 #[cfg(test)]
 mod test;
@@ -119,7 +120,7 @@ fn central_difference_derivative<T: Float, F: Float>(
 /// let actual = list.iter().map(|(t, _)| (*t, t.cos())).collect::<Box<_>>();
 /// assert_eq!(actual.len(), list.len());
 ///
-/// // The numeric derivative.
+/// // The numerical derivative.
 /// let result = derivatives::first_order(&list);
 /// assert_eq!(result.len(), actual.len());
 ///
@@ -195,8 +196,9 @@ pub fn first_order<T: Float, F: Float>(list: &[(T, F)]) -> Box<[(T, f64)]> {
 /// # Examples
 ///
 /// ```rust
-/// # use std::num::NonZeroU32;
 /// # use sciutil::statistics::derivatives;
+/// #
+/// # use std::num::NonZeroU32;
 /// #
 /// // `sin(t)` from `t = 0` to `t = 2`.
 /// let list = (0..=10)
@@ -211,7 +213,7 @@ pub fn first_order<T: Float, F: Float>(list: &[(T, F)]) -> Box<[(T, f64)]> {
 /// assert_eq!(actual.len(), list.len());
 ///
 /// let second_order = NonZeroU32::new(2).expect("`2 > 0`");
-/// // The numeric second derivative.
+/// // The numerical second derivative.
 /// let result = derivatives::nth_order(second_order, &list);
 /// assert_eq!(result.len(), actual.len());
 ///
@@ -239,7 +241,7 @@ pub fn first_order<T: Float, F: Float>(list: &[(T, F)]) -> Box<[(T, f64)]> {
 /// }
 /// ```
 ///
-/// Overlapping values cause infinite or NaN derivatives:
+/// Overlapping values cause infinite or NaN nth derivatives:
 ///
 /// ```rust
 /// # use sciutil::statistics::derivatives;
@@ -304,7 +306,7 @@ pub fn nth_order<T: Float, F: Float>(order: NonZeroU32, list: &[(T, F)]) -> Box<
 /// $$$
 /// ```
 ///
-/// For details, see the Typst document `/doc/derivatives.typ`. It explains the math further and
+/// For details, see the Typst document `/docs/derivatives.typ`. It explains the math further and
 /// derives it. The math is based on William Leonard's article "Dangers of Automated Data
 /// Analysis," pub. _The Physics Teacher,_ vol. 35, April 1996, pp. 220-222.
 ///
@@ -350,7 +352,7 @@ fn derivative_time_shifted<T: Float, F: Float>(index: usize, list: &[(T, F)]) ->
 /// Traditional "rise over run" derivatives calculate the average derivative, at the center of a
 /// time interval. This estimates the derivative at the _start_ of an interval.
 ///
-/// For details, see the Typst document `/doc/derivatives.typ`. It explains the math further and
+/// For details, see the Typst document `/docs/derivatives.typ`. It explains the math further and
 /// derives it. The math is based on William Leonard's article "Dangers of Automated Data
 /// Analysis," pub. _The Physics Teacher,_ vol. 35, April 1996, pp. 220-222.
 ///
@@ -378,7 +380,7 @@ fn derivative_time_shifted<T: Float, F: Float>(index: usize, list: &[(T, F)]) ->
 /// let actual = list.iter().map(|(t, _)| (*t, t.cos())).collect::<Box<_>>();
 /// assert_eq!(actual.len(), list.len());
 ///
-/// // The numeric derivative.
+/// // The numerical derivative.
 /// let result = derivatives::first_order_time_shifted(&list);
 /// assert_eq!(result.len(), actual.len() - 2);
 ///
@@ -428,7 +430,7 @@ fn derivative_time_shifted<T: Float, F: Float>(index: usize, list: &[(T, F)]) ->
 ///     .collect::<Box<_>>();
 /// assert_eq!(list.len(), EXPECTED.len() + 2);
 ///
-/// // The numeric derivative.
+/// // The numerical derivative.
 /// let result = derivatives::first_order_time_shifted(&list);
 /// assert_eq!(result.len(), EXPECTED.len());
 ///
@@ -507,7 +509,7 @@ pub fn first_order_time_shifted<T: Float, F: Float>(list: &[(T, F)]) -> Box<[(T,
 /// $$$
 /// ```
 ///
-/// For details, see the Typst document `/doc/derivatives.typ`. It explains the math further and
+/// For details, see the Typst document `/docs/derivatives.typ`. It explains the math further and
 /// derives it. The math is based on William Leonard's article "Dangers of Automated Data
 /// Analysis," pub. _The Physics Teacher,_ vol. 35, April 1996, pp. 220-222.
 ///
@@ -540,15 +542,17 @@ fn second_derivative_time_shifted<T: Float, F: Float>(
     ))
 }
 
-/// Calculates the numerical derivative of `F` with respect to `T` using time-shifted data points.
+/// Calculates the numerical second derivative of `F` with respect to `T` using time-shifted data
+/// points.
 ///
 /// - Does not include the first or last data points.
 /// - Assumes that the list is sorted by ascending `T` values (smallest first, largest last).
 ///
-/// Traditional "rise over run" derivatives calculate the average derivative, at the center of a
-/// time interval. This estimates the derivative at the _start_ of an interval.
+/// This recognizes that traditional "rise over run" derivatives calculate the average derivative,
+/// at the center of a time interval. This adjusts to calculated derivatives based on midpoints
+/// instead of the start of intervals.
 ///
-/// For details, see the Typst document `/doc/derivatives.typ`. It explains the math further and
+/// For details, see the Typst document `/docs/derivatives.typ`. It explains the math further and
 /// derives it. The math is based on William Leonard's article "Dangers of Automated Data
 /// Analysis," pub. _The Physics Teacher,_ vol. 35, April 1996, pp. 220-222.
 ///
@@ -576,7 +580,7 @@ fn second_derivative_time_shifted<T: Float, F: Float>(
 /// let actual = list.iter().map(|(t, _)| (*t, -t.sin())).collect::<Box<_>>();
 /// assert_eq!(actual.len(), list.len());
 ///
-/// // The numeric derivative.
+/// // The time-shifted numerical second derivative.
 /// let result = derivatives::second_order_time_shifted(&list);
 /// assert_eq!(result.len(), actual.len() - 2);
 ///
@@ -626,7 +630,7 @@ fn second_derivative_time_shifted<T: Float, F: Float>(
 ///     .collect::<Box<_>>();
 /// assert_eq!(list.len(), EXPECTED.len() + 2);
 ///
-/// // The numeric derivative.
+/// // The time-shifted numerical second derivative.
 /// let result = derivatives::second_order_time_shifted(&list);
 /// assert_eq!(result.len(), EXPECTED.len());
 ///
@@ -645,7 +649,7 @@ fn second_derivative_time_shifted<T: Float, F: Float>(
 /// }
 /// ```
 ///
-/// Overlapping values cause NaN derivatives:
+/// Overlapping values cause NaN second derivatives:
 ///
 /// ```rust
 /// # use sciutil::statistics::derivatives;
