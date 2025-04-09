@@ -38,14 +38,14 @@ use crate::units::{Float, UncertainFloat};
 ///         Seconds::new(1_024.051_123_125_5),
 ///         Seconds::new(0.015_555_312)
 ///     )),
-///     "1024.051 s ± 0.016 s"
+///     "1024.051 s ± 0.016 s",
 /// );
 ///
 /// // Units are omitted if they aren't present, and the value will not get extra zeros if it ends
 /// // before the uncertainty.
 /// assert_eq!(
 ///     rounding::round_with_uncertainty(&UncertainFloat::new(1_024.05, 0.015_555_312)),
-///     "1024.05 ± 0.016"
+///     "1024.05 ± 0.016",
 /// );
 /// ```
 #[must_use]

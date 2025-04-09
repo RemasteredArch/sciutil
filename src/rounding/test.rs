@@ -81,10 +81,15 @@ fn check_macros() {
 
 #[test]
 fn digit_slice_add() {
+    // Basic behavior.
     assert_eq!(SLICE_102405.add(1), digit_box![1, 0, 2, 4, 0, 6]);
     assert_eq!(SLICE_102405.add(100_000), digit_box![2, 0, 2, 4, 0, 5]);
+    // The length of the digit slice grows as it needs to.
     assert_eq!(digit_slice!(9).add(1), digit_box![1, 0]);
+    // Will not grow if it does not need to.
     assert_eq!(digit_slice!(0, 9).add(1), digit_box![1, 0]);
+    // Will shrink to the minimum length.
+    assert_eq!(digit_slice!(0, 0, 9).add(1), digit_box![1, 0]);
 }
 
 #[test]

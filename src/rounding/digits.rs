@@ -146,14 +146,36 @@ impl Display for Digit {
 pub struct DigitSlice<'a>(&'a [Digit]);
 
 impl<'a> DigitSlice<'a> {
-    /// Constructs a new instance of [`Self`].
+    /// Constructs a new instance of [`Self`] from a slice of [`Digit`]s.
+    ///
+    /// [`Self`] also implements [`From`] (and back [`Into`]!) for [`u32`] so that you don't have
+    /// to create the [`Digit`] slice yourself.
     #[must_use]
     pub const fn new(digits: &'a [Digit]) -> Self {
         Self(digits)
     }
 
     /// Treats [`Self`] as a [`u32`], adds another [`u32`], then converts back to a (boxed) slice
-    /// of [`Digit`]s. This may cause the slice to grow in length.
+    /// of [`Digit`]s. This may cause the slice to grow or shrink in length.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use sciutil::rounding::digits::{Digit, DigitSlice};
+    /// #
+    /// // `9`
+    /// let nine = DigitSlice::new(&[Digit::NINE]);
+    /// // `009`
+    /// let zero_zero_nine = DigitSlice::new(&[Digit::ZERO, Digit::ZERO, Digit::NINE]);
+    /// // `10`
+    /// let ten = DigitSlice::new(&[Digit::ONE, Digit::ZERO]).into_boxed();
+    ///
+    /// // The length of the digit slice grows as it needs to (`9` -> `10`).
+    /// assert_eq!(nine.add(1), ten);
+    ///
+    /// // Does not maintain any leading zeros (`009` -> `10`).
+    /// assert_eq!(zero_zero_nine.add(1), ten);
+    /// ```
     #[expect(clippy::missing_panics_doc, reason = "see `expect` string")]
     #[must_use]
     pub fn add(&self, value: u32) -> Box<[Digit]> {
