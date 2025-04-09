@@ -6,6 +6,11 @@
 // copy of the Mozilla Public License was not distributed with this file, You can obtain one at
 // <https://mozilla.org/MPL/2.0/>.
 
+//! `digits`: Facilities for handling floating-point values as lists of base-ten digits.
+//!
+//! In particular, see [`Digits`], which holds the implementation details for
+//! [`super::round_with_uncertainty`].
+
 use std::{
     fmt::Display,
     num::{FpCategory, NonZeroIsize},

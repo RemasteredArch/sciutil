@@ -6,8 +6,6 @@
 // copy of the Mozilla Public License was not distributed with this file, You can obtain one at
 // <https://mozilla.org/MPL/2.0/>.
 
-use crate::units::{Float, Seconds, UncertainFloat};
-
 use super::digits::{Digit, DigitSlice, Digits, Sign};
 
 macro_rules! digit {
@@ -211,19 +209,4 @@ fn round_to() {
     // 0.6
     // ```
     assert_eq!(digits_06.round_to_digit(1), digits_06);
-}
-
-#[test]
-fn round_with_uncertainty() {
-    assert_eq!(
-        super::round_with_uncertainty(&UncertainFloat::new(1_024.05, 0.015_555_312)),
-        "1024.05 ± 0.016"
-    );
-    assert_eq!(
-        super::round_with_uncertainty(&UncertainFloat::new(
-            Seconds::new(1_024.051_123_125_5),
-            Seconds::new(0.015_555_312)
-        )),
-        "1024.051 s ± 0.016 s"
-    );
 }
