@@ -56,6 +56,16 @@ impl Digit {
     pub const NINE: Self = Self(9);
 
     /// Creates a new [`Self`], checking that it is valid.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use sciutil::rounding::digits::Digit;
+    /// #
+    /// assert_eq!(Digit::new(0), Some(Digit::ZERO));
+    /// assert_eq!(Digit::new(9), Some(Digit::NINE));
+    /// assert!(Digit::new(10).is_none());
+    /// ```
     #[must_use]
     pub const fn new(digit: u8) -> Option<Self> {
         // Assumes that `Self::MIN == u8::MIN` so that it can skip `digit >= Self::MIN`.
@@ -257,6 +267,36 @@ impl Digits {
     /// # Panics
     ///
     /// Panics if `value` is [`FpCategory::Nan`] or [`FpCategory::Infinite`].
+    ///
+    /// # Examples
+    ///
+    /// Working as expected:
+    ///
+    /// ```
+    /// # use sciutil::rounding::digits::Digits;
+    /// #
+    /// assert_eq!(Digits::new(1024.0).to_string(), "1024");
+    /// assert_eq!(Digits::new(1024.05).to_string(), "1024.05");
+    /// assert_eq!(Digits::new(0.0).to_string(), "0");
+    /// assert_eq!(Digits::new(-0.0).to_string(), "-0");
+    /// assert_eq!(Digits::new(0.03).to_string(), "0.03");
+    /// ```
+    ///
+    /// NaN values cause panics:
+    ///
+    /// ```should_panic
+    /// # use sciutil::rounding::digits::Digits;
+    /// #
+    /// let nan = Digits::new(f64::NAN);
+    /// ```
+    ///
+    /// Infinite values cause panics:
+    ///
+    /// ```should_panic
+    /// # use sciutil::rounding::digits::Digits;
+    /// #
+    /// let inf = Digits::new(f64::INFINITY);
+    /// ```
     #[must_use]
     pub fn new(value: f64) -> Self {
         value
@@ -276,8 +316,50 @@ impl Digits {
     }
 
     /// Constructs a [`Self`] from its component parts.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use sciutil::rounding::digits::{Digit, Digits, Sign};
+    /// #
+    /// # fn test() -> Option<()> {
+    /// let digits_0 =
+    ///     Digits::from_parts(Sign::Positive, 1, [Digit::ZERO].to_vec().into_boxed_slice())?;
+    /// assert_eq!(digits_0.to_string(), "0".to_string());
+    ///
+    /// // `dot` cannot be more than one away from the last index.
+    /// assert!(
+    ///     Digits::from_parts(Sign::Positive, 2, [Digit::ZERO].to_vec().into_boxed_slice()).is_none()
+    /// );
+    ///
+    /// assert_eq!(digits_0.to_string(), "0".to_string());
+    ///
+    /// let digits_102405 = Digits::from_parts(
+    ///     Sign::Negative,
+    ///     4,
+    ///     [
+    ///         Digit::ONE,
+    ///         Digit::ZERO,
+    ///         Digit::TWO,
+    ///         Digit::FOUR,
+    ///         Digit::ZERO,
+    ///         Digit::FIVE,
+    ///     ]
+    ///     .to_vec()
+    ///     .into_boxed_slice(),
+    /// )?;
+    /// assert_eq!(digits_102405.to_string(), "-1024.05".to_string());
+    /// #
+    /// #     Some(())
+    /// # }
+    /// #
+    /// # assert!(test().is_some());
+    /// ```
     #[must_use]
     pub fn from_parts(sign: Sign, dot: usize, digits: Box<[Digit]>) -> Option<Self> {
+        // TODO: should `dot` also be required to be greater than zero? Would there be any reason
+        // to allow someone to opt-out of the leading zero? Should I refactor this whole class to
+        // be based around `NonZeroUsize`?
         if dot > digits.len() {
             return None;
         }
@@ -287,6 +369,22 @@ impl Digits {
 
     /// Converts [`Self`] into a [`SplitFloat`], splitting the digits on the left and right side of
     /// this [`Self`]'s dot.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use sciutil::rounding::digits::{Digit, Digits, Sign};
+    /// #
+    /// let (sign, lhs, rhs) = Digits::new(1024.05).to_split();
+    /// assert_eq!(sign, Sign::Positive);
+    /// assert_eq!(
+    ///     lhs,
+    ///     [Digit::ONE, Digit::ZERO, Digit::TWO, Digit::FOUR]
+    ///         .to_vec()
+    ///         .into_boxed_slice()
+    /// );
+    /// assert_eq!(rhs, [Digit::ZERO, Digit::FIVE].to_vec().into_boxed_slice());
+    /// ```
     #[must_use]
     pub fn to_split(&self) -> SplitFloat {
         let lhs = self.digits[0..self.dot].to_vec().into_boxed_slice();
