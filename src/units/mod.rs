@@ -32,7 +32,7 @@ pub trait Float: From<f64> + Into<f64> {
     ///
     /// # Examples
     ///
-    /// ```
+    /// ```rust
     /// # use sciutil::units::{Float, Seconds};
     /// #
     /// assert_eq!(Seconds::NAME_SINGLE, Some("second"))
@@ -43,7 +43,7 @@ pub trait Float: From<f64> + Into<f64> {
     ///
     /// # Examples
     ///
-    /// ```
+    /// ```rust
     /// # use sciutil::units::{Float, Seconds};
     /// #
     /// assert_eq!(Seconds::NAME_PLURAL, Some("seconds"))
@@ -54,7 +54,7 @@ pub trait Float: From<f64> + Into<f64> {
     ///
     /// # Examples
     ///
-    /// ```
+    /// ```rust
     /// # use sciutil::units::{Float, Seconds};
     /// #
     /// assert_eq!(Seconds::SYMBOL, Some("s"))

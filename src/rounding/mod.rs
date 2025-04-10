@@ -26,7 +26,7 @@ use crate::units::{Float, UncertainFloat};
 ///
 /// # Examples
 ///
-/// ```
+/// ```rust
 /// # use sciutil::{
 /// #     rounding,
 /// #     units::{Float, Seconds, UncertainFloat},

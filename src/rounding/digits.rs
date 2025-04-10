@@ -59,7 +59,7 @@ impl Digit {
     ///
     /// # Examples
     ///
-    /// ```
+    /// ```rust
     /// # use sciutil::rounding::digits::Digit;
     /// #
     /// assert_eq!(Digit::new(0), Some(Digit::ZERO));
@@ -170,7 +170,7 @@ impl<'a> DigitSlice<'a> {
     ///
     /// # Examples
     ///
-    /// ```
+    /// ```rust
     /// # use sciutil::rounding::digits::{Digit, DigitSlice};
     /// #
     /// // `9`
@@ -272,7 +272,7 @@ impl Digits {
     ///
     /// Working as expected:
     ///
-    /// ```
+    /// ```rust
     /// # use sciutil::rounding::digits::Digits;
     /// #
     /// assert_eq!(Digits::new(1024.0).to_string(), "1024");
@@ -288,7 +288,7 @@ impl Digits {
     /// # use sciutil::rounding::digits::Digits;
     /// #
     /// let nan = Digits::new(f64::NAN);
-    /// ```
+    /// ```rust
     ///
     /// Infinite values cause panics:
     ///
@@ -319,7 +319,7 @@ impl Digits {
     ///
     /// # Examples
     ///
-    /// ```
+    /// ```rust
     /// # use sciutil::rounding::digits::{Digit, Digits, Sign};
     /// #
     /// # fn test() -> Option<()> {
@@ -372,7 +372,7 @@ impl Digits {
     ///
     /// # Examples
     ///
-    /// ```
+    /// ```rust
     /// # use sciutil::rounding::digits::{Digit, Digits, Sign};
     /// #
     /// let (sign, lhs, rhs) = Digits::new(1024.05).to_split();
