@@ -583,7 +583,7 @@ impl Digits {
             .unwrap_or(Digit::Zero);
 
         // Truncate digits beyond `digit_index`.
-        let digits = DigitSlice(&self.digits[0..=digit_index]);
+        let digits = DigitSlice::new(&self.digits[0..=digit_index]);
 
         // Round up if necessary.
         let mut digits = match trailing_digit.get() {
@@ -599,7 +599,17 @@ impl Digits {
             self.dot
         };
 
-        // If the addition return a slice shorter than expected, then there were some
+        // If the addition return a slice shorter than expected, then there were some leading zeros
+        // that got trimmed.
+        //
+        // ```txt
+        // 009  Start
+        //  10  Rounded to `digit_index` 1
+        // 010  After restoring missing leading zeros
+        // ```
+        //
+        // Note that it doesn't restore the same _number_ of leading zeros, it restores the leading
+        // zeros up to the first _place_ they appeared.
         if digits.len() <= digit_index {
             let missing_leading_zeros = digit_index + 1 - digits.len();
 
@@ -609,6 +619,18 @@ impl Digits {
             digits = vec.into_boxed_slice();
         }
 
+        // When rounding to a given digit, we truncate at that digit. If that digit was more
+        // significant than the ones place, then suddenly you've lost some magnitudes. This tracks
+        // the number of zeros between the last digit and the dot.
+        //
+        //
+        // ```txt
+        // 102345.0 `self.digits`
+        //   ^      `digit_index = 2`
+        //    ^^^   `trailing_zeros = 3`
+        // 102      After rounding
+        // 102000   After appending trailing zeros
+        // ```
         if trailing_zeros > 0 {
             let mut vec = digits.to_vec();
             vec.append(&mut [Digit::Zero].repeat(trailing_zeros));
