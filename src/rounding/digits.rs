@@ -34,7 +34,7 @@ impl Display for Sign {
     }
 }
 
-/// Represents a base-ten digit, from 0-9.
+/// Represents a base-ten digit, from 0--9.
 #[derive(Debug, Clone, Copy, Eq, PartialEq, PartialOrd, Ord)]
 pub struct Digit(u8);
 
@@ -488,14 +488,14 @@ impl Digits {
     /// If the [`Digit`] at `digit_index + 1` is:
     ///
     /// - Out of range,
-    /// - 0-4,
+    /// - 0--4,
     /// - or 5 and the [`Digit`] at `digit_index` is even,
     ///
     /// It rounds down, simply truncating [`Self`] at `digits_index`.
     ///
     /// If the [`Digit`] at `digit_index + 1` is:
     ///
-    /// - 6-9
+    /// - 6--9
     /// - or 5 and the [`Digit`] at `digit_index` is odd
     ///
     /// It rounds up, adding `1` to the [`Digit`] at `digit_index` (carrying tens up as necessary).
