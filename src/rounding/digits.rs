@@ -36,24 +36,24 @@ impl Display for Sign {
 
 /// Represents a base-ten digit, from 0--9.
 #[derive(Debug, Clone, Copy, Eq, PartialEq, PartialOrd, Ord)]
-pub struct Digit(u8);
+pub enum Digit {
+    Zero,
+    One,
+    Two,
+    Three,
+    Four,
+    Five,
+    Six,
+    Seven,
+    Eight,
+    Nine,
+}
 
 impl Digit {
     /// The minimum possible value of [`Self`].
     pub const MIN: u8 = 0;
     /// The maximum possible value of [`Self`].
     pub const MAX: u8 = 9;
-
-    pub const ZERO: Self = Self(0);
-    pub const ONE: Self = Self(1);
-    pub const TWO: Self = Self(2);
-    pub const THREE: Self = Self(3);
-    pub const FOUR: Self = Self(4);
-    pub const FIVE: Self = Self(5);
-    pub const SIX: Self = Self(6);
-    pub const SEVEN: Self = Self(7);
-    pub const EIGHT: Self = Self(8);
-    pub const NINE: Self = Self(9);
 
     /// Creates a new [`Self`], checking that it is valid.
     ///
@@ -62,34 +62,42 @@ impl Digit {
     /// ```rust
     /// # use sciutil::rounding::digits::Digit;
     /// #
-    /// assert_eq!(Digit::new(0), Some(Digit::ZERO));
-    /// assert_eq!(Digit::new(9), Some(Digit::NINE));
+    /// assert_eq!(Digit::new(0), Some(Digit::Zero));
+    /// assert_eq!(Digit::new(9), Some(Digit::Nine));
     /// assert!(Digit::new(10).is_none());
     /// ```
     #[must_use]
     pub const fn new(digit: u8) -> Option<Self> {
-        // Assumes that `Self::MIN == u8::MIN` so that it can skip `digit >= Self::MIN`.
-        if digit <= Self::MAX {
-            return Some(Self(digit));
-        }
-
-        None
-    }
-
-    /// Creates a new [`Self`] without checking that it is from zero to nine.
-    ///
-    /// # Safety
-    ///
-    /// Assumes that `0 <= digit <= 9`.
-    #[must_use]
-    pub const unsafe fn new_unchecked(digit: u8) -> Self {
-        Self(digit)
+        Some(match digit {
+            0 => Self::Zero,
+            1 => Self::One,
+            2 => Self::Two,
+            3 => Self::Three,
+            4 => Self::Four,
+            5 => Self::Five,
+            6 => Self::Six,
+            7 => Self::Seven,
+            8 => Self::Eight,
+            9 => Self::Nine,
+            _ => return None,
+        })
     }
 
     /// Gets the internal representation of [`Self`] as a [`u8`].
     #[must_use]
     pub const fn get(&self) -> u8 {
-        self.0
+        match self {
+            Self::Zero => 0,
+            Self::One => 1,
+            Self::Two => 2,
+            Self::Three => 3,
+            Self::Four => 4,
+            Self::Five => 5,
+            Self::Six => 6,
+            Self::Seven => 7,
+            Self::Eight => 8,
+            Self::Nine => 9,
+        }
     }
 }
 
@@ -114,9 +122,9 @@ impl TryFrom<char> for Digit {
 
     fn try_from(digit: char) -> Result<Self, Self::Error> {
         // `to_digit(10)` will return a number from 0-9, so it is safe to cast to [`u8`] and
-        // blindly construct [`Self`].
+        // blindly construct [`Self`] with unwrap.
         #[expect(clippy::cast_possible_truncation, reason = "see comment")]
-        Ok(Self(digit.to_digit(10).ok_or(())? as u8))
+        Ok(Self::new(digit.to_digit(10).ok_or(())? as u8).unwrap())
     }
 }
 
@@ -159,10 +167,10 @@ impl Display for Digit {
 /// ```rust
 /// # use sciutil::rounding::digits::{Digit, DigitSlice};
 /// #
-/// let ten = DigitSlice::new(&[Digit::ONE, Digit::ZERO]);
+/// let ten = DigitSlice::new(&[Digit::One, Digit::Zero]);
 ///
 /// assert_eq!(u32::from(ten), 10);
-/// assert_eq!(ten.add(1), [Digit::ONE, Digit::ONE].to_vec().into_boxed_slice());
+/// assert_eq!(ten.add(1), [Digit::One, Digit::One].to_vec().into_boxed_slice());
 /// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct DigitSlice<'a>(&'a [Digit]);
@@ -175,7 +183,7 @@ impl<'a> DigitSlice<'a> {
     /// ```rust
     /// # use sciutil::rounding::digits::{Digit, DigitSlice};
     /// #
-    /// let slice = &[Digit::ONE, Digit::ZERO];
+    /// let slice = &[Digit::One, Digit::Zero];
     /// assert_eq!(DigitSlice::new(slice).get(), slice);
     /// ```
     #[must_use]
@@ -192,11 +200,11 @@ impl<'a> DigitSlice<'a> {
     /// # use sciutil::rounding::digits::{Digit, DigitSlice};
     /// #
     /// // `9`
-    /// let nine = DigitSlice::new(&[Digit::NINE]);
+    /// let nine = DigitSlice::new(&[Digit::Nine]);
     /// // `009`
-    /// let zero_zero_nine = DigitSlice::new(&[Digit::ZERO, Digit::ZERO, Digit::NINE]);
+    /// let zero_zero_nine = DigitSlice::new(&[Digit::Zero, Digit::Zero, Digit::Nine]);
     /// // `10`
-    /// let ten = DigitSlice::new(&[Digit::ONE, Digit::ZERO]).into_boxed();
+    /// let ten = DigitSlice::new(&[Digit::One, Digit::Zero]).into_boxed();
     ///
     /// // The length of the digit slice grows as it needs to (`9` -> `10`).
     /// assert_eq!(nine.add(1), ten);
@@ -342,24 +350,24 @@ impl Digits {
     /// #
     /// # fn test() -> Option<()> {
     /// let digits_0 =
-    ///     Digits::from_parts(Sign::Positive, 1, [Digit::ZERO].to_vec().into_boxed_slice())?;
+    ///     Digits::from_parts(Sign::Positive, 1, [Digit::Zero].to_vec().into_boxed_slice())?;
     /// assert_eq!(digits_0.to_string(), "0".to_string());
     ///
     /// // `dot` cannot be more than one away from the last index.
     /// assert!(
-    ///     Digits::from_parts(Sign::Positive, 2, [Digit::ZERO].to_vec().into_boxed_slice()).is_none()
+    ///     Digits::from_parts(Sign::Positive, 2, [Digit::Zero].to_vec().into_boxed_slice()).is_none()
     /// );
     ///
     /// let digits_102405 = Digits::from_parts(
     ///     Sign::Negative,
     ///     4,
     ///     [
-    ///         Digit::ONE,
-    ///         Digit::ZERO,
-    ///         Digit::TWO,
-    ///         Digit::FOUR,
-    ///         Digit::ZERO,
-    ///         Digit::FIVE,
+    ///         Digit::One,
+    ///         Digit::Zero,
+    ///         Digit::Two,
+    ///         Digit::Four,
+    ///         Digit::Zero,
+    ///         Digit::Five,
     ///     ]
     ///     .to_vec()
     ///     .into_boxed_slice(),
@@ -396,11 +404,11 @@ impl Digits {
     /// assert_eq!(sign, Sign::Positive);
     /// assert_eq!(
     ///     lhs,
-    ///     [Digit::ONE, Digit::ZERO, Digit::TWO, Digit::FOUR]
+    ///     [Digit::One, Digit::Zero, Digit::Two, Digit::Four]
     ///         .to_vec()
     ///         .into_boxed_slice()
     /// );
-    /// assert_eq!(rhs, [Digit::ZERO, Digit::FIVE].to_vec().into_boxed_slice());
+    /// assert_eq!(rhs, [Digit::Zero, Digit::Five].to_vec().into_boxed_slice());
     /// ```
     #[must_use]
     pub fn to_split(&self) -> SplitFloat {
@@ -572,7 +580,7 @@ impl Digits {
             .digits
             .get(digit_index + 1)
             .copied()
-            .unwrap_or(Digit::ZERO);
+            .unwrap_or(Digit::Zero);
 
         // Truncate digits beyond `digit_index`.
         let digits = DigitSlice(&self.digits[0..=digit_index]);
@@ -595,7 +603,7 @@ impl Digits {
         if digits.len() <= digit_index {
             let missing_leading_zeros = digit_index + 1 - digits.len();
 
-            let mut vec = [Digit::ZERO].repeat(missing_leading_zeros);
+            let mut vec = [Digit::Zero].repeat(missing_leading_zeros);
             vec.append(&mut digits.to_vec());
 
             digits = vec.into_boxed_slice();
@@ -603,7 +611,7 @@ impl Digits {
 
         if trailing_zeros > 0 {
             let mut vec = digits.to_vec();
-            vec.append(&mut [Digit::ZERO].repeat(trailing_zeros));
+            vec.append(&mut [Digit::Zero].repeat(trailing_zeros));
 
             digits = vec.into_boxed_slice();
         }
@@ -655,8 +663,8 @@ impl Digits {
                 //
                 // 10000    return value
                 // ```
-                let mut rounded_up = vec![Digit::ONE];
-                rounded_up.append(&mut [Digit::ZERO].repeat(self.dot));
+                let mut rounded_up = vec![Digit::One];
+                rounded_up.append(&mut [Digit::Zero].repeat(self.dot));
                 return Self {
                     sign: self.sign,
                     dot: self.dot + 1,
@@ -738,7 +746,7 @@ impl Default for Digits {
         Self {
             sign: Sign::Positive,
             dot: 0,
-            digits: [Digit::ZERO].to_vec().into_boxed_slice(),
+            digits: [Digit::Zero].to_vec().into_boxed_slice(),
         }
     }
 }

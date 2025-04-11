@@ -11,16 +11,16 @@ use super::digits::{Digit, DigitSlice, Digits, Sign};
 macro_rules! digit {
     ($digit:expr) => {
         match $digit {
-            0 => Digit::ZERO,
-            1 => Digit::ONE,
-            2 => Digit::TWO,
-            3 => Digit::THREE,
-            4 => Digit::FOUR,
-            5 => Digit::FIVE,
-            6 => Digit::SIX,
-            7 => Digit::SEVEN,
-            8 => Digit::EIGHT,
-            9 => Digit::NINE,
+            0 => Digit::Zero,
+            1 => Digit::One,
+            2 => Digit::Two,
+            3 => Digit::Three,
+            4 => Digit::Four,
+            5 => Digit::Five,
+            6 => Digit::Six,
+            7 => Digit::Seven,
+            8 => Digit::Eight,
+            9 => Digit::Nine,
             _ => panic!("invalid macro input, expected digit"),
         }
     };
@@ -55,24 +55,24 @@ fn check_macros() {
     assert_eq!(
         SLICE_102405,
         DigitSlice::new(&[
-            Digit::ONE,
-            Digit::ZERO,
-            Digit::TWO,
-            Digit::FOUR,
-            Digit::ZERO,
-            Digit::FIVE
+            Digit::One,
+            Digit::Zero,
+            Digit::Two,
+            Digit::Four,
+            Digit::Zero,
+            Digit::Five
         ]),
     );
 
     assert_eq!(
         digit_box![1, 0, 2, 4, 0, 5],
         [
-            Digit::ONE,
-            Digit::ZERO,
-            Digit::TWO,
-            Digit::FOUR,
-            Digit::ZERO,
-            Digit::FIVE
+            Digit::One,
+            Digit::Zero,
+            Digit::Two,
+            Digit::Four,
+            Digit::Zero,
+            Digit::Five
         ]
         .to_vec()
         .into_boxed_slice(),
