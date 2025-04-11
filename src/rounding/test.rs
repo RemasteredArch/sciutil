@@ -134,8 +134,8 @@ fn last_sigificant_digit() {
     let digits_1024 = digits!(Positive, 4, [1, 0, 2, 4, 0, 5]);
     let digits_001 = digits!(Positive, 1, [0, 0, 1, 5, 5, 5, 5, 3, 1, 2]);
 
-    assert_eq!(digits_001.last_sigificant_digit(), 3);
-    assert_eq!(digits_1024.last_sigificant_digit(), 2);
+    assert_eq!(digits_001.last_significant_digit(), 3);
+    assert_eq!(digits_1024.last_significant_digit(), 1);
 }
 
 #[test]

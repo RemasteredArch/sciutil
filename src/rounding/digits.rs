@@ -350,8 +350,6 @@ impl Digits {
     ///     Digits::from_parts(Sign::Positive, 2, [Digit::ZERO].to_vec().into_boxed_slice()).is_none()
     /// );
     ///
-    /// assert_eq!(digits_0.to_string(), "0".to_string());
-    ///
     /// let digits_102405 = Digits::from_parts(
     ///     Sign::Negative,
     ///     4,
@@ -394,6 +392,7 @@ impl Digits {
     /// # use sciutil::rounding::digits::{Digit, Digits, Sign};
     /// #
     /// let (sign, lhs, rhs) = Digits::new(1024.05).to_split();
+    ///
     /// assert_eq!(sign, Sign::Positive);
     /// assert_eq!(
     ///     lhs,
@@ -417,14 +416,32 @@ impl Digits {
     /// This looks for the first non-zero [`Digit`]. If that [`Digit`] is 1 or 2, it returns the
     /// index of the next [`Digit`] if there is one. Otherwise, it returns the index of this first
     /// [`Digit`].
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// # use sciutil::rounding::digits::Digits;
+    /// #
+    /// // ```txt
+    /// // 1024.05
+    /// // -^
+    /// // ```
+    /// assert_eq!(Digits::new(1024.05).last_significant_digit(), 1);
+    ///
+    /// // ```txt
+    /// // 42
+    /// // ^
+    /// // ```
+    /// assert_eq!(Digits::new(42.0).last_significant_digit(), 0);
+    /// ```
     #[must_use]
-    pub fn last_sigificant_digit(&self) -> usize {
+    pub fn last_significant_digit(&self) -> usize {
         let mut skipped_one_or_two_index = None;
         self.digits
             .iter()
             .enumerate()
             .find_map(|(index, digit)| match digit.get() {
-                0 => None,
+                0 if skipped_one_or_two_index.is_none() => None,
                 1 | 2 if skipped_one_or_two_index.is_none() => {
                     skipped_one_or_two_index = Some(index);
                     None
@@ -441,9 +458,27 @@ impl Digits {
     /// This looks for the first non-zero [`Digit`]. If that [`Digit`] is 1 or 2, it returns the
     /// [`Place`] of the next [`Digit`] if there is one. Otherwise, it returns the [`Place`] of
     /// this first [`Digit`].
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// # use sciutil::rounding::digits::Digits;
+    /// #
+    /// // ```txt
+    /// // 1024.05
+    /// //  ^--
+    /// // ```
+    /// assert_eq!(Digits::new(1024.05).last_significant_place().get(), -3);
+    ///
+    /// // ```txt
+    /// // 42
+    /// // ^-
+    /// // ```
+    /// assert_eq!(Digits::new(42.0).last_significant_place().get(), -2);
+    /// ```
     #[must_use]
-    pub fn last_sigificant_place(&self) -> Place {
-        self.digit_index_to_place(self.last_sigificant_digit())
+    pub fn last_significant_place(&self) -> Place {
+        self.digit_index_to_place(self.last_significant_digit())
     }
 
     /// Rounds [`Self`] to the given digit index.

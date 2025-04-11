@@ -55,7 +55,7 @@ pub fn round_with_uncertainty<F: Float>(with_uncertainty: &UncertainFloat<F>) ->
     let value = Digits::new(with_uncertainty.value().get());
     let uncertainty = Digits::new(with_uncertainty.uncertainty().get());
 
-    let last_place = uncertainty.last_sigificant_place();
+    let last_place = uncertainty.last_significant_place();
     let uncertainty = uncertainty.round_to_place(last_place);
     let value = value.round_to_place(last_place);
 
