@@ -149,17 +149,35 @@ impl Display for Digit {
     }
 }
 
-/// Represents an unsigned integer number as a slice of [`Digit`]s.
+/// Represents an unsigned integer number as a shared slice of [`Digit`]s.
 ///
-/// Mostly intended for use in intermediate steps when working with [`Digits`].
+/// Mostly intended for use in intermediate steps when working with [`Digits`], most notably for
+/// [`Self::add`].
+///
+/// # Examples
+///
+/// ```rust
+/// # use sciutil::rounding::digits::{Digit, DigitSlice};
+/// #
+/// let ten = DigitSlice::new(&[Digit::ONE, Digit::ZERO]);
+///
+/// assert_eq!(u32::from(ten), 10);
+/// assert_eq!(ten.add(1), [Digit::ONE, Digit::ONE].to_vec().into_boxed_slice());
+/// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct DigitSlice<'a>(&'a [Digit]);
 
 impl<'a> DigitSlice<'a> {
     /// Constructs a new instance of [`Self`] from a slice of [`Digit`]s.
     ///
-    /// [`Self`] also implements [`From`] (and back [`Into`]!) for [`u32`] so that you don't have
-    /// to create the [`Digit`] slice yourself.
+    /// # Examples
+    ///
+    /// ```rust
+    /// # use sciutil::rounding::digits::{Digit, DigitSlice};
+    /// #
+    /// let slice = &[Digit::ONE, Digit::ZERO];
+    /// assert_eq!(DigitSlice::new(slice).get(), slice);
+    /// ```
     #[must_use]
     pub const fn new(digits: &'a [Digit]) -> Self {
         Self(digits)
@@ -288,7 +306,7 @@ impl Digits {
     /// # use sciutil::rounding::digits::Digits;
     /// #
     /// let nan = Digits::new(f64::NAN);
-    /// ```rust
+    /// ```
     ///
     /// Infinite values cause panics:
     ///
