@@ -50,9 +50,9 @@ pub enum Digit {
 }
 
 impl Digit {
-    /// The minimum possible value of [`Self`].
+    /// The minimum possible value of [`Self`] as a [`u8`].
     pub const MIN: u8 = 0;
-    /// The maximum possible value of [`Self`].
+    /// The maximum possible value of [`Self`] as a [`u8`].
     pub const MAX: u8 = 9;
 
     /// Creates a new [`Self`], checking that it is valid.
@@ -83,7 +83,7 @@ impl Digit {
         })
     }
 
-    /// Gets the internal representation of [`Self`] as a [`u8`].
+    /// Gets [`Self`] as a [`u8`].
     #[must_use]
     pub const fn get(&self) -> u8 {
         match self {
@@ -131,9 +131,13 @@ impl TryFrom<char> for Digit {
 impl From<Digit> for char {
     #[must_use]
     fn from(digit: Digit) -> Self {
-        const CHARS: [char; 10] = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+        const ASCII_ZERO: u8 = 0b0011_0000;
 
-        CHARS[digit.get() as usize]
+        // - `0b0011_0000` -> `'0'`
+        // - `0b0011_0001` -> `'1'`
+        // - `0b0011_0010` -> `'2'`
+        // - Etc.
+        (ASCII_ZERO + digit.get()) as Self
     }
 }
 
@@ -817,7 +821,7 @@ impl Display for Digits {
         let mut str = self.sign.to_string();
 
         // Print zero as `"0"`, not `".0"`.
-        if self.digits.len() == 1 && self.digits[0].get() == 0 && self.dot == 0 {
+        if self.digits.len() == 1 && self.digits[0] == Digit::Zero && self.dot == 0 {
             str.push('0');
             return write!(f, "{str}");
         }

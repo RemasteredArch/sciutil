@@ -215,3 +215,115 @@ fn round_to() {
     // ```
     assert_eq!(digits_06.round_to_digit(1), digits_06);
 }
+
+#[expect(clippy::cognitive_complexity, reason = "it's long, but simple")]
+#[test]
+fn digit_conversion() {
+    /// For every provided [`Digit`] and [`char`], assert that converting the digit into a
+    /// character returns the expected result.
+    macro_rules! into_char {
+        [ $($digit:ident, $char:expr);+ ; ] => {
+            $( assert_eq!(char::from(Digit::$digit), $char) );+
+        };
+    }
+
+    /// For every provided [`Digit`] and number, assert that converting the digit into a number
+    /// returns the expected result, using [`Digit::get`], [`u8::from`], and [`u32::from`].
+    macro_rules! into_num {
+        [ $($digit:ident, $num:literal);+ ; ] => { $(
+                assert_eq!(Digit::$digit.get(), $num);
+                assert_eq!(u8::from(Digit::$digit), $num);
+                assert_eq!(u32::from(Digit::$digit), $num);
+        )+ };
+    }
+
+    /// For every provided value and [`Digit`], assert that [`Digit::try_from`] will return
+    /// `Err(())` if `from == Err` or `Ok(from)` otherwise.
+    macro_rules! try_from {
+        [ $($from:expr, $digit:ident);+ ; ] => {
+            $( try_from!(@ $from, $digit) );+
+        };
+
+        (@ $from:expr, Err) => {
+            assert_eq!(Digit::try_from($from), Err(()))
+        };
+
+        (@ $from:expr, $digit:ident) => {
+            assert_eq!(Digit::try_from($from), Ok(Digit::$digit))
+        };
+    }
+
+    /// For every provided number and [`Digit`], assert that [`Digit::try_from`] will return
+    /// `Err(())` if `from == Err` or `Ok(value)` otherwise, when treating `from` as both a [`u8`]
+    /// and a [`u32`].
+    macro_rules! try_from_num {
+        [ $($from:literal, $digit:ident);+ ; ] => { $(
+            try_from![$from as u8, $digit;];
+            try_from![$from as u32, $digit;];
+        )+ };
+    }
+
+    // Converts into characters correctly.
+    into_char![
+        Zero, '0';
+        One, '1';
+        Two, '2';
+        Three, '3';
+        Four, '4';
+        Five, '5';
+        Six, '6';
+        Seven, '7';
+        Eight, '8';
+        Nine, '9';
+    ];
+
+    // Converts into numbers correctly.
+    into_num![
+        Zero, 0;
+        One, 1;
+        Two, 2;
+        Three, 3;
+        Four, 4;
+        Five, 5;
+        Six, 6;
+        Seven, 7;
+        Eight, 8;
+        Nine, 9;
+    ];
+
+    try_from![
+        // Digits convert from numeral characters successfully.
+        '0', Zero;
+        '1', One;
+        '2', Two;
+        '3', Three;
+        '4', Four;
+        '5', Five;
+        '6', Six;
+        '7', Seven;
+        '8', Eight;
+        '9', Nine;
+        // Any other character does not.
+        'a', Err;
+        'b', Err;
+        '\0', Err;
+    ];
+
+    try_from_num![
+        // Digits convert from 0--9 successfully.
+        0, Zero;
+        1, One;
+        2, Two;
+        3, Three;
+        4, Four;
+        5, Five;
+        6, Six;
+        7, Seven;
+        8, Eight;
+        9, Nine;
+        // Any other number does not.
+        10, Err;
+        11, Err;
+        255, Err;
+    ];
+}
