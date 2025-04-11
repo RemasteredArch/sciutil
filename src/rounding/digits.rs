@@ -499,6 +499,52 @@ impl Digits {
     /// - or 5 and the [`Digit`] at `digit_index` is odd
     ///
     /// It rounds up, adding `1` to the [`Digit`] at `digit_index` (carrying tens up as necessary).
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// # use sciutil::rounding::digits::{Digits};
+    /// #
+    /// // ```txt
+    /// // 0.015555312
+    /// //     ^
+    /// // 0.016
+    /// // ```
+    /// assert_eq!(
+    ///     Digits::new(0.015555312).round_to_digit(3).to_string(),
+    ///     "0.016",
+    /// );
+    ///
+    /// // ```txt
+    /// // 0.015555312
+    /// //   ^
+    /// // 0.0
+    /// // ```
+    /// assert_eq!(
+    ///     Digits::new(0.015555312).round_to_digit(1).to_string(),
+    ///     "0.0",
+    /// );
+    ///
+    /// // ```txt
+    /// // 1024.05
+    /// //  ^
+    /// // 1000
+    /// // ```
+    /// assert_eq!(
+    ///     Digits::new(1024.05).round_to_digit(1).to_string(),
+    ///     "1000",
+    /// );
+    ///
+    /// // ```txt
+    /// // 1024.05
+    /// //      ^
+    /// // 1024.0
+    /// // ```
+    /// assert_eq!(
+    ///     Digits::new(1024.05).round_to_digit(4).to_string(),
+    ///     "1024.0",
+    /// );
+    /// ```
     #[must_use]
     pub fn round_to_digit(&self, digit_index: usize) -> Self {
         if digit_index >= self.digits.len() {

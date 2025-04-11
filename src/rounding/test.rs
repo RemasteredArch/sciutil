@@ -187,7 +187,7 @@ fn round_to() {
     // ```txt
     // 1024.05
     //      ^
-    // 1000.0
+    // 1024.0
     // ```
     assert_eq!(
         digits_102405.round_to_digit(4),
