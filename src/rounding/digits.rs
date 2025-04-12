@@ -218,13 +218,24 @@ impl<'a> DigitSlice<'a> {
     /// ```
     #[expect(clippy::missing_panics_doc, reason = "see `expect` string")]
     #[must_use]
-    pub fn add(&self, value: u32) -> Box<[Digit]> {
-        // This could be more efficient, but whatever.
-        (u32::from(self) + value)
-            .to_string()
-            .chars()
-            .map(|c| Digit::try_from(c).expect("`u32::to_string` will only produce digits 0-9"))
-            .collect()
+    pub fn add(&self, mut value: u32) -> Box<[Digit]> {
+        value += u32::from(self);
+
+        // `value.ilog10()` panics if `value == 0`, so we special case that.
+        if value == 0 {
+            return [Digit::Zero].to_vec().into_boxed_slice();
+        }
+        // The number of digits in `value`.
+        let len = (value.ilog10() + 1) as usize;
+
+        let mut digits = [Digit::Zero].repeat(len).into_boxed_slice();
+        for i in (0..len).rev() {
+            digits[i] = Digit::try_from(value % 10)
+                .expect("`u32 % 10` won't produce a value greater than 9");
+            value /= 10;
+        }
+
+        digits
     }
 
     /// Gets the internal slice representation of [`Self`].

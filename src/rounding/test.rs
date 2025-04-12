@@ -327,3 +327,27 @@ fn digit_conversion() {
         255, Err;
     ];
 }
+
+#[test]
+#[ignore = "benchmark, use `cargo bench -- --ignored -- bench_` to run"]
+fn bench_digit_slice_add() {
+    let slice_102406 = digit_box![1, 0, 2, 4, 0, 6];
+    let slice_202405 = digit_box![2, 0, 2, 4, 0, 5];
+
+    let slice_9 = digit_slice!(9);
+    let slice_09 = digit_slice!(0, 9);
+    let slice_009 = digit_slice!(0, 0, 9);
+    let slice_10 = digit_box![1, 0];
+
+    for _ in 0..150_000 {
+        // Basic behavior.
+        assert_eq!(SLICE_102405.add(1), slice_102406);
+        assert_eq!(SLICE_102405.add(100_000), slice_202405);
+        // The length of the digit slice grows as it needs to.
+        assert_eq!(slice_9.add(1), slice_10);
+        // Will not grow if it does not need to.
+        assert_eq!(slice_09.add(1), slice_10);
+        // Will shrink to the minimum length.
+        assert_eq!(slice_009.add(1), slice_10);
+    }
+}
