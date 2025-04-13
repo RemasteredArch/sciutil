@@ -671,6 +671,52 @@ impl Digits {
     ///
     /// Otherwise, behaves the same as calling [`Self::place_to_digit_index`] and
     /// [`Self::round_to_digit`].
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// # use sciutil::rounding::digits::{Digits, Place};
+    /// #
+    /// // ```txt
+    /// // 0.015555312
+    /// //     ^
+    /// // 0.016
+    /// // ```
+    /// assert_eq!(
+    ///     Digits::new(0.015555312).round_to_place(Place::new(3).unwrap()).to_string(),
+    ///     "0.016",
+    /// );
+    ///
+    /// // ```txt
+    /// // 0.015555312
+    /// //   ^
+    /// // 0.0
+    /// // ```
+    /// assert_eq!(
+    ///     Digits::new(0.015555312).round_to_place(Place::new(1).unwrap()).to_string(),
+    ///     "0.0",
+    /// );
+    ///
+    /// // ```txt
+    /// // 1024.05
+    /// //  ^
+    /// // 1000
+    /// // ```
+    /// assert_eq!(
+    ///     Digits::new(1024.05).round_to_place(Place::new(-3).unwrap()).to_string(),
+    ///     "1000",
+    /// );
+    ///
+    /// // ```txt
+    /// // 1024.05
+    /// //      ^
+    /// // 1024.0
+    /// // ```
+    /// assert_eq!(
+    ///     Digits::new(1024.05).round_to_place(Place::new(1).unwrap()).to_string(),
+    ///     "1024.0",
+    /// );
+    /// ```
     #[expect(clippy::missing_panics_doc, reason = "see `expect` string")]
     #[must_use]
     pub fn round_to_place(&self, place: Place) -> Self {
@@ -732,6 +778,57 @@ impl Digits {
 
     /// Converts a digit index (oriented the list of digits, specific to this [`Self`]) to a
     /// generic [`Place`] (oriented around this [`Self`]'s dot).
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// # use sciutil::rounding::digits::{Digits, Place};
+    /// #
+    /// // ```txt
+    /// // 0.015555312
+    /// //     ^
+    /// // ```
+    /// assert_eq!(
+    ///     Digits::new(0.015555312).digit_index_to_place(3),
+    ///     Place::new(3).unwrap(),
+    /// );
+    ///
+    /// // ```txt
+    /// // 0.015555312
+    /// //   ^
+    /// // ```
+    /// assert_eq!(
+    ///     Digits::new(0.015555312).digit_index_to_place(1),
+    ///     Place::new(1).unwrap(),
+    /// );
+    ///
+    /// // ```txt
+    /// // 1024.05
+    /// //  ^
+    /// // ```
+    /// assert_eq!(
+    ///     Digits::new(1024.05).digit_index_to_place(1),
+    ///     Place::new(-3).unwrap(),
+    /// );
+    ///
+    /// // ```txt
+    /// // 1024.05
+    /// //      ^
+    /// // ```
+    /// assert_eq!(
+    ///     Digits::new(1024.05).digit_index_to_place(4),
+    ///     Place::new(1).unwrap(),
+    /// );
+    ///
+    /// // ```txt
+    /// // 1024.05
+    /// //         ^
+    /// // ```
+    /// assert_eq!(
+    ///     Digits::new(1024.05).digit_index_to_place(7),
+    ///     Place::new(4).unwrap(),
+    /// );
+    /// ```
     #[expect(clippy::missing_panics_doc, reason = "see `expect` string")]
     #[must_use]
     pub const fn digit_index_to_place(&self, digit_index: usize) -> Place {
@@ -757,6 +854,66 @@ impl Digits {
     ///
     /// Returns [`None`] if the provided [`Place`] exists outside of the range of this [`Self`]'s
     /// list of digits.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// # use sciutil::rounding::digits::{Digits, Place};
+    /// #
+    /// // ```txt
+    /// // 0.015555312
+    /// //     ^
+    /// // ```
+    /// assert_eq!(
+    ///     Digits::new(0.015555312).place_to_digit_index(Place::new(3).unwrap()),
+    ///     Some(3),
+    /// );
+    ///
+    /// // ```txt
+    /// // 0.015555312
+    /// //   ^
+    /// // ```
+    /// assert_eq!(
+    ///     Digits::new(0.015555312).place_to_digit_index(Place::new(1).unwrap()),
+    ///     Some(1),
+    /// );
+    ///
+    /// // ```txt
+    /// // 1024.05
+    /// //  ^
+    /// // ```
+    /// assert_eq!(
+    ///     Digits::new(1024.05).place_to_digit_index(Place::new(-3).unwrap()),
+    ///     Some(1),
+    /// );
+    ///
+    /// // ```txt
+    /// // 1024.05
+    /// //      ^
+    /// // ```
+    /// assert_eq!(
+    ///     Digits::new(1024.05).place_to_digit_index(Place::new(1).unwrap()),
+    ///     Some(4),
+    /// );
+    ///
+    /// // ```txt
+    /// // 1024.05
+    /// //         ^
+    /// // ```
+    /// assert_eq!(
+    ///     Digits::new(1024.05).place_to_digit_index(Place::new(4).unwrap()),
+    ///     None,
+    /// );
+    ///
+    /// // ```txt
+    /// //   1024.05
+    /// // ^
+    /// // ```
+    /// assert_eq!(
+    ///     Digits::new(1024.05).place_to_digit_index(Place::new(-6).unwrap()),
+    ///     None,
+    /// );
+    /// ```
     #[must_use]
     pub fn place_to_digit_index(&self, place: Place) -> Option<usize> {
         // Zero represents the dot for [`Place`] values, but the digit after the dot for digit
