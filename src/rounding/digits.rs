@@ -950,6 +950,8 @@ impl TryFrom<f64> for Digits {
 
     /// Converts an [`f64`] to base-ten decimal number and parses it into a [`Self`].
     ///
+    /// See also [`Digits::new`].
+    ///
     /// # Errors
     ///
     /// Returns [`Self::Error`] if `value` is [`FpCategory::Nan`] or [`FpCategory::Infinite`].
@@ -1007,6 +1009,8 @@ impl Display for Digits {
 }
 
 /// Represents a float-point value split at the dot.
+///
+/// E.g., `123.456 == SplitFloat(Positive, [1, 2, 3], [4, 5, 6])`.
 pub type SplitFloat = (Sign, Box<[Digit]>, Box<[Digit]>);
 
 /// Represents the "place" (position) of a digit in a number.
@@ -1015,4 +1019,10 @@ pub type SplitFloat = (Sign, Box<[Digit]>, Box<[Digit]>);
 ///
 /// - `-1` is the ones place, `-2` the tens place, `-3` the hundreds place, etc.
 /// - `1` is the tenths place, `2` is the tenths place, `3` is the hundredths place, etc.
+///
+/// ```txt
+/// ...  1245.6789 ...
+///      ^  ^ ^  ^
+/// ... -4 -1 1  4 ...
+/// ```
 pub type Place = NonZeroIsize;
