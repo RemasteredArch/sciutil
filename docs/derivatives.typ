@@ -312,6 +312,106 @@ For the unfamiliar, here are a few notable pieces of notation used in this docum
     This is used to justify a claim.
 ]
 
+= Traditional numeric derivatives
+
+All these derivatives work off the simple principle of "rise over run."
+They find their differences only in where they gather the points to compare.
+
+== First-order
+
+The first-order derivative
+operates on some ordered list of $(t, f)$ values,
+returning a list of each derivative of $f$ with respect to $t$
+(a list of $(t, f pr)$).
+
+For the first item in the list,
+it relies on the forward difference derivative.
+For the last item in the list,
+it relies on the backward difference derivative.
+For every other item in the list,
+it relies on the central difference derivative.
+Note that the forward and backward difference derivatives have greater error,
+so the first and last items will be less accurate than the middle items.
+This is mostly fine for the first-order derivative,
+but it's problematic for higher-order derivatives.
+
+=== Central difference derivative
+
+Given some point $t_2$,
+the central difference derivative
+estimates the derivative of $f$ at $t_2$ as follows:
+
+$$$
+  f^pr_2 = (f_3 - f_1) / (t_3 - t_1)
+$$$
+
+This is the preferred method over the forward and backwards difference derivatives
+because its error from the actual value of $f pr$
+is proportional to $f prt$ instead of $f prd$,
+but it cannot be used on the first or last item of a list.
+
+*TODO: Taylor Series expansion as proof.*
+
+=== Forward difference derivative
+
+Given some point $t_2$,
+the forward difference derivative
+estimates the derivative of $f$ at $t_2$ as follows:
+
+$$$
+  f^pr_2 = (f_3 - f_2) / (t_3 - t_2)
+$$$
+
+The central difference derivative should be preferred over this method
+because its error from the actual value of $f pr$
+is proportional to $f prd$ instead of $f prt$,
+but this is the only option for the first item in a list.
+
+*TODO: Taylor Series expansion as proof.*
+
+=== Backward difference derivative
+
+Given some point $t_2$,
+the backward difference derivative
+estimates the derivative of $f$ at $t_2$ as follows:
+
+$$$
+  f^pr_2 = (f_2 - f_1) / (t_2 - t_1)
+$$$
+
+The central difference derivative should be preferred over this method
+because its error from the actual value of $f pr$
+is proportional to $f prd$ instead of $f prt$,
+but this is the only option for the last item in a list.
+
+*TODO: Taylor Series expansion as proof.*
+
+== Higher-order
+
+The higher-order derivative
+operates on some ordered list of $(t, f)$ values,
+return a list of each $n$-th derivative of $f$ with respect to $t$
+(a list of $(t, f^((n)))$).
+
+It does this by repeatedly re-calculating the first-order derivative on the list.
+The first-order derivative will be less accurate for the first and last items in the list,
+but this error propagates further into the list
+with every recalculation.
+Here's a Desmos graph that reimplements the algorithms used by sciutil
+to visualize that error.
+Notice how the last couple items in $(sin x) prd$
+deviate so significantly.
+The first couple items do too,
+but do so less because of how small $(sin x) prd$ is at $x = 0 $.
+
+#align(
+  center,
+  [
+    #image("images/error propagation graph for numeric derivatives.svg", width: 75%)
+    #url("https://www.desmos.com/calculator/e2k5vughza")
+  ],
+)
+
 = Time-shifted derivatives
 
 Time-shifted derivatives recognize that traditional "rise over run" derivatives

@@ -32,12 +32,12 @@ fn forward_difference_derivative<T: Float, F: Float>(
     index: usize,
     list: &[(T, F)],
 ) -> Option<(T, f64)> {
-    let (t_1, f_1) = list.get(index)?;
+    let (t_2, f_2) = list.get(index)?;
     let (t_3, f_3) = list.get(index + 1)?;
 
     Some((
-        T::new(t_1.get()),
-        (f_3.get() - f_1.get()) / (t_3.get() - t_1.get()),
+        T::new(t_2.get()),
+        (f_3.get() - f_2.get()) / (t_3.get() - t_2.get()),
     ))
 }
 
@@ -82,13 +82,13 @@ fn central_difference_derivative<T: Float, F: Float>(
     list: &[(T, F)],
 ) -> Option<(T, f64)> {
     let (t_1, f_1) = list.get(index.checked_sub(1)?)?;
-    let (t_2, f_2) = list.get(index + 1)?;
+    let (t_3, f_3) = list.get(index + 1)?;
 
-    let (t_middle, _) = list.get(index)?;
+    let (t_2, _) = list.get(index)?;
 
     Some((
-        T::new(t_middle.get()),
-        (f_2.get() - f_1.get()) / (t_2.get() - t_1.get()),
+        T::new(t_2.get()),
+        (f_3.get() - f_1.get()) / (t_3.get() - t_1.get()),
     ))
 }
 
