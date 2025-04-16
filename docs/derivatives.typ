@@ -112,6 +112,7 @@
 #let dt = $d t$
 #let dx = $d x$
 #let dy = $d y$
+#let df = $d f$
 #let dz = $d z$
 #let dv = $d v$
 #let dV = $d V$
@@ -124,6 +125,7 @@
 #let dVdt = $(d V) / dt$
 #let dvdt = $dv / dt$
 #let ddt = $d / dt$
+#let dfdt = $df / dt$
 #let dxdt = $dx / dt$
 #let dzdt = $dz / dt$
 #let dhdt = $(d h) / dt$
@@ -310,6 +312,30 @@ For the unfamiliar, here are a few notable pieces of notation used in this docum
       For example, $t_("mid", 12) = (t_1 + t_2) / 2$.
   - $because$ is shorthand for "because."
     This is used to justify a claim.
+  - $|$ is notation for "where."
+    This is used to define terms or specify requirements for an expression.
+  - $[a, b]$ is the interval from $a$ to $b$ (including $a$ and $b$).
+    For example, on the x-axis, it's every point between $x = a$ to $x = b$.
+  - $in$ is notation for "in,"
+    used to claim that a point exists within an interval.
+    For example, $x in [a, b]$ says that some point $x$ exists at or between $a$ and $b$.
+  - $<<$ is notation for "much less than."
+]
+
+== Definitions
+
+#block(breakable: false, width: 100%)[
+  Given some function $f$,
+  some constant offset $Dt$ (that may be positive or negative),
+  and some $eta in [t, t + Dt]$,
+  we define:
+
+  $$$
+  // alpha, n + 1; sub dt for alpha
+    R_(n + 1) &= (Dt)^(n + 1) / (n + 1)! f^((n + 1)) (t + eta)
+  $$$
+
+  This is something we'll use during Taylor Series expansions.
 ]
 
 = Traditional numeric derivatives
@@ -350,7 +376,75 @@ because its error from the actual value of $f pr$
 is proportional to $f prt$ instead of $f prd$,
 but it cannot be used on the first or last item of a list.
 
-*TODO: Taylor Series expansion as proof.*
+==== Calculating error <central_derivative_error>
+
+Suppose $f$ is a continuous function
+with $n + 1$ derivatives,
+rather than a discrete set of points.
+We define the central difference derivative
+in terms of an arbitrary $Dt$ instead.
+
+$$$
+  f pr (t) &approx (f(t + Dt) - f(t - Dt)) / (2 Dt)\
+$$$
+
+#block(breakable: false, width: 100%)[
+  We can use the Taylor Series expansions of
+  $f(t + Dt)$ (see @forward_derivative_error)
+  and $f(t - Dt)$ (see @backward_derivative_error)
+  to find the exact value of our approximation:
+
+  $$$
+    &(f(t + Dt) - f(t - Dt)) / (2 Dt)\
+    &= #block[$ ((#block[$ &( f(t)
+      + Dt f pr (t)
+      + (Dt)^2 / 2! f prd (t)
+      + dots
+      + (Dt)^n / n! f^((n)) (t)
+      + R_(n + 1) )\
+    &""- ( f(t)
+      - Dt f pr (t)
+      + (Dt)^2 / 2! f pr (t)
+      - (Dt)^3 / 3! f prt (t)
+      + dots
+      + (-Dt)^n / n! f^((n)) (t)
+      + R_(n + 1)) $] )) / (2 Dt)
+    $]\
+    &= (
+      2 Dt f pr (t)
+      + 2 (Dt)^3 / 3! f prt (t)
+      + dots
+      + 2 (Dt)^m / m! f^((m)) (t)
+      + 2 R_(m + 1)
+    ) / (2 Dt) "     "| m = cases(
+      n &| n "is odd",
+      n - 1 &| n "is even",
+    )\
+    &= f pr (t)
+      + (Dt)^2 / 3! f prt (t)
+      + dots
+      + (Dt)^(m - 1) / m! f^((m)) (t)
+      + R_(m + 1) / Dt
+  $$$
+]
+
+Because the expansion of $f(t + Dt)$ is always positive
+and the expansion of $f(t - Dt)$
+is negative for terms with odd-ordered derivatives
+and positive for even-ordered derivatives,
+this expansion includes only the terms with odd-ordered derivatives.
+
+This expansion has the actual value of $f pr (t)$ present,
+so the rest is the error of our approximation.
+This error is on the order of $(Dt)^2$.
+Because for small $Dt$,
+increasingly higher powers of $Dt$ are increasingly small,
+all terms but the leading term are insignificant,
+giving us a leading order error term of $(Dt)^2 / 3! f prt (t)$.
+Further,
+that $Dt^2 << Dt$
+leads us to the claim that the central difference derivative
+is much more accurate than the forward and backward difference derivatives.
 
 === Forward difference derivative
 
@@ -367,7 +461,53 @@ because its error from the actual value of $f pr$
 is proportional to $f prd$ instead of $f prt$,
 but this is the only option for the first item in a list.
 
-*TODO: Taylor Series expansion as proof.*
+==== Calculating error <forward_derivative_error>
+
+Suppose $f$ is a continuous function
+with $n + 1$ derivatives,
+rather than a discrete set of points.
+We define the forward difference derivative
+in terms of an arbitrary $Dt$ instead.
+
+$$$
+  f pr (t) &approx (f(t + Dt) - f(t)) / Dt\
+$$$
+
+#block(breakable: false, width: 100%)[
+  We can use a Taylor Series expansion of $f(t + Dt)$
+  to find the exact value of our approximation:
+
+  $$$
+    f(t + Dt) &= sum_(m = 0)^n (Dt)^m / m! f^((m)) (t) + R_(n + 1)\
+    f(t + Dt) &=
+    (Dt)^0 / 0! f^((0)) (t)
+    + (Dt)^1 / 1! f^((1)) (t)
+    + (Dt)^2 / 2! f^((2)) (t)
+    + dots
+    + (Dt)^n / n! f^((n)) (t)
+    + R_(n + 1)\
+    f(t + Dt) &=
+    f(t)
+    + Dt f pr (t)
+    + (Dt)^2 / 2! f prd (t)
+    + dots
+    + (Dt)^n / n! f^((n)) (t)
+    + R_(n + 1)\
+    (f(t + Dt) - f(t)) / Dt &=
+    f pr (t)
+    + Dt / 2! f prd (t)
+    + dots
+    + (Dt)^(n - 1) / n! f^((n)) (t)
+    + R_(n + 1) / Dt\
+  $$$
+]
+
+This expansion has the actual value of $f pr (t)$ present,
+so the rest is the error of our approximation.
+This error is on the order of $Dt$.
+For sufficiently small $Dt$,
+$(Dt)^n | n > 1$ is so much smaller than $Dt$ that all but the leading term are insignificant,
+giving us a leading order error term of $Dt / 2! f prd (t)$.
 
 === Backward difference derivative
 
@@ -384,7 +524,63 @@ because its error from the actual value of $f pr$
 is proportional to $f prd$ instead of $f prt$,
 but this is the only option for the last item in a list.
 
-*TODO: Taylor Series expansion as proof.*
+==== Calculating error <backward_derivative_error>
+
+Suppose $f$ is a continuous function
+with $n + 1$ derivatives,
+rather than a discrete set of points.
+We define the backward difference derivative
+in terms of an arbitrary $Dt$ instead.
+
+$$$
+  f pr (t) &approx (f(t) - f(t - Dt)) / Dt\
+$$$
+
+#block(breakable: false, width: 100%)[
+  We can use a Taylor Series expansion of $f(t + Dt)$
+  to find the exact value of our approximation:
+
+  $$$
+    f(t - Dt) &= sum_(m = 0)^n (-Dt)^m / m! f^((m)) (t) + R_(n + 1)\
+    f(t - Dt) &=
+    (-Dt)^0 / 0! f^((0)) (t)
+    + (-Dt)^1 / 1! f^((1)) (t)
+    + (-Dt)^2 / 2! f^((2)) (t)\
+    &#hide[$=$] "" + (-Dt)^3 / 3! f^((3)) (t)
+    + dots
+    + (-Dt)^n / n! f^((n)) (t)
+    + R_(n + 1)\
+    f(t - Dt) &=
+    f(t)
+    - Dt f pr (t)
+    + (Dt)^2 / 2! f pr (t)
+    - (Dt)^3 / 3! f prt (t)
+    + dots
+    + (-Dt)^n / n! f^((n)) (t)
+    + R_(n + 1)\
+    (f(t) - f(t - Dt)) / Dt &= - 1/ Dt (
+    - Dt f pr (t)
+    + (Dt)^2 / 2! f pr (t)
+    - (Dt)^3 / 3! f prt (t)
+    + dots
+    + (-Dt)^n / n! f^((n)) (t)
+    + R_(n + 1))\
+    (f(t) - f(t - Dt)) / Dt &=
+    f pr (t)
+    - Dt / 2! f pr (t)
+    + (Dt)^2 / 3! f prt (t)
+    - dots
+    - (-Dt)^(n - 1) / n! f^((n)) (t)
+    - R_(n + 1) / Dt\
+  $$$
+]
+
+This expansion has the actual value of $f pr (t)$ present,
+so the rest is the error of our approximation.
+This error is on the order of $Dt$.
+For sufficiently small $Dt$,
+$(Dt)^n | n > 1$ is so much smaller than $Dt$ that all but the leading term are insignificant,
+giving us a leading order error term of $- Dt / 2! f prd (t)$.
 
 == Higher-order
 

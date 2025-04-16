@@ -1,2 +1,9 @@
+# Cargo
 /target
+
+# Prototype Typst documents
 *.priv.typ
+
+# Compiled Typst documents
+/out
+/docs/out
