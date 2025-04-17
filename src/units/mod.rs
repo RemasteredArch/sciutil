@@ -87,6 +87,7 @@ impl Float for f64 {
 /// assert_eq!(with_uncertainty.min(), 4.0);
 /// assert_eq!(with_uncertainty.max(), 6.0);
 /// ```
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
 pub struct UncertainFloat<F: Float> {
     /// The measured value.
     value: F,
@@ -145,6 +146,7 @@ impl<F: Float> UncertainFloat<F> {
 /// assert_eq!(Per::<Meters, Seconds, 3>::new(5.05).to_string(), "5.05 meters per second cubed");
 /// assert_eq!(Per::<Meters, Seconds, 4>::new(5.05).to_string(), "5.05 meters per second^4");
 /// ```
+#[derive(Copy, Clone, PartialEq, PartialOrd, Debug, Default)]
 pub struct Per<F: Float, T: Float, const P: usize>(f64, PhantomData<F>, PhantomData<T>);
 
 impl<F: Float, T: Float, const P: usize> Per<F, T, P> {
@@ -265,6 +267,7 @@ impl<T: Float, F: Float, const P: usize> From<Per<F, T, P>> for f64 {
 macro_rules! float_type {
     ($(#[$attribute:meta])* $unit:ident, $symbol:expr, $name_single:expr, $name_plural:expr,) => {
         $(#[$attribute])*
+        #[derive(Copy, Clone, PartialEq, PartialOrd, Debug, Default)]
         pub struct $unit(f64);
 
         impl Float for $unit {

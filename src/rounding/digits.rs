@@ -17,8 +17,9 @@ use std::{
 };
 
 /// Represents whether a number is positive or negative.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
 pub enum Sign {
+    #[default]
     Positive,
     Negative,
 }
@@ -35,8 +36,9 @@ impl Display for Sign {
 }
 
 /// Represents a base-ten digit, from 0--9.
-#[derive(Debug, Clone, Copy, Eq, PartialEq, PartialOrd, Ord)]
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
 pub enum Digit {
+    #[default]
     Zero,
     One,
     Two,
@@ -176,7 +178,7 @@ impl Display for Digit {
 /// assert_eq!(u32::from(ten), 10);
 /// assert_eq!(ten.add(1), [Digit::One, Digit::One].to_vec().into_boxed_slice());
 /// ```
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
 pub struct DigitSlice<'a>(&'a [Digit]);
 
 impl<'a> DigitSlice<'a> {
@@ -285,7 +287,7 @@ impl From<DigitSlice<'_>> for u32 {
 ///     ^
 ///     | `dot = 3`
 /// ```
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub struct Digits {
     /// The sign of the number represented by [`Self`].
     sign: Sign,
