@@ -62,3 +62,50 @@ fn central_difference() {
     eq(independent, 1.0);
     assert!(derivative.is_infinite());
 }
+
+#[test]
+fn time_shifted() {
+    // Normal behavior:
+    let list = &[(0.0, 1.0), (1.0, 3.0), (2.0, 5.0)];
+    let derivative = ((5.0_f64 - 3.0) / (2.0 - 1.0))
+        .mul_add(1.0 - 0.0, (3.0 - 1.0) / (1.0 - 0.0) * (2.0 - 1.0))
+        / (2.0 - 0.0);
+
+    assert_eq!(
+        super::derivative_time_shifted(1, list),
+        Some((1.0, derivative))
+    );
+
+    // Overlapping values should cause NaN derivatives:
+    let (independent, derivative) =
+        super::derivative_time_shifted(1, &[(1.0, 1.0), (1.0, 3.0), (1.0, 5.0)]).unwrap();
+    dbg!(independent, derivative);
+
+    eq(independent, 1.0);
+    assert!(derivative.is_nan());
+}
+
+#[test]
+fn second_time_shifted() {
+    // Normal behavior:
+    let list = &[(0.0, 1.0), (1.0, 3.0), (2.0, 5.0)];
+    let derivative =
+        2.0 * (
+            (5.0_f64 - 3.0) / (2.0 - 1.0) // f'_(avg,23)
+            - (3.0 - 1.0) / (1.0 - 0.0)
+            // f'_(avg,12)
+        ) / (2.0 - 0.0); // Delta t_13
+
+    assert_eq!(
+        super::second_derivative_time_shifted(1, list),
+        Some((1.0, derivative))
+    );
+
+    // Overlapping values should cause NaN derivatives:
+    let (independent, derivative) =
+        super::second_derivative_time_shifted(1, &[(1.0, 1.0), (1.0, 3.0), (1.0, 5.0)]).unwrap();
+    dbg!(independent, derivative);
+
+    eq(independent, 1.0);
+    assert!(derivative.is_nan());
+}

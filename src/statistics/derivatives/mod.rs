@@ -8,8 +8,25 @@
 
 //! `derivatives`: Calculate numerical derivatives of real data.
 //!
+//! This module provides two kinds of numeric derivatives:
+//!
+//! 1. Traditional numeric derivatives: [`first_order`] and [`nth_order`]. These are your typical
+//!    "rise over run" derivatives.
+//!    - Their implementations are also exposed in case you have advanced needs that might benefit
+//!      from differentiating individual points: [`central_difference_derivative`],
+//!      [`forward_difference_derivative`], and [`backward_difference_derivative`].
+//! 2. Time-shifted derivatives: [`first_order_time_shifted`] and [`second_order_time_shifted`].
+//!    These recognize that "rise over run" algorithms don't estimate the derivative at a point, but
+//!    the derivative at the midpoint between it and another point, and does a little bit of
+//!    trickery to adjust these to the start of intervals. Unfortunately, they lose the first and
+//!    last items in the list.
+//!    - Their implementations are also exposed in case you have advanced needs that might benefit
+//!      from differentiating individual points: [`derivative_time_shifted`] and
+//!      [`second_derivative_time_shifted`].
+//!
 //! For details on the math behind these algorithms, see the Typst document
-//! `/docs/derivatives.typ`.
+//! `/docs/derivatives.typ`. It also provides a Taylor Series expansion of the traditional numeric
+//! derivatives to provide a more formal depiction of how error works for them.
 
 #[cfg(test)]
 mod test;
@@ -22,13 +39,46 @@ use std::num::NonZeroU32;
 /// `T` between `index` and `index + 1`.
 ///
 /// Best used for the first item in a list. See [`central_difference_derivative`] for other items.
+/// See [`first_order`] for a little more information, or the Typst document
+/// `/docs/derivatives.typ` for details.
+///
+/// Assumes that the list is sorted by ascending `T` values (smallest first, largest last).
 ///
 /// # Errors
 ///
 /// - Returns [`None`] if `index` or `index + 1` is out of bounds in `list`.
 /// - Returns [`f64::INFINITY`] as the derivative if `t` at `index` is equal to `t` at `index + 1`.
+///
+/// # Units
+///
+/// If you're interested in properly typing the result, see [`crate::units::Per`]. This could
+/// provide proper typing for the output [`f64`]. Specifically, the most correct typing would be
+/// `Per<F, T, 1>`. This function only doesn't return that because it would corner the consumer
+/// into providing the order at compile time.
+///
+/// # Examples
+///
+/// ```rust
+/// # use sciutil::statistics::derivatives::forward_difference_derivative;
+/// #
+/// // Normal behavior:
+/// let list = &[(0.0, 1.0), (1.0, 3.0)];
+/// let derivative = (3.0 - 1.0) / (1.0 - 0.0);
+///
+/// assert_eq!(
+///     forward_difference_derivative(0, list),
+///     Some((0.0, derivative))
+/// );
+///
+/// // Division by zero from overlapping values should return [`f64::INFINITY`]:
+/// let (independent, derivative) =
+///     forward_difference_derivative(0, &[(1.0, 1.0), (1.0, 3.0)]).unwrap();
+///
+/// assert_eq!(independent, 1.0);
+/// assert!(derivative.is_infinite());
+/// ```
 #[must_use]
-fn forward_difference_derivative<T: Float, F: Float>(
+pub fn forward_difference_derivative<T: Float, F: Float>(
     index: usize,
     list: &[(T, F)],
 ) -> Option<(T, f64)> {
@@ -45,13 +95,46 @@ fn forward_difference_derivative<T: Float, F: Float>(
 /// `T` between `index - 1` and `index`.
 ///
 /// Best used for the last item in a list. See [`central_difference_derivative`] for other items.
+/// See [`first_order`] for a little more information, or the Typst document
+/// `/docs/derivatives.typ` for details.
+///
+/// Assumes that the list is sorted by ascending `T` values (smallest first, largest last).
 ///
 /// # Errors
 ///
 /// - Returns [`None`] if `index` or `index - 1` is out of bounds in `list`.
 /// - Returns [`f64::INFINITY`] as the derivative if `t` at `index` is equal to `t` at `index - 1`.
+///
+/// # Units
+///
+/// If you're interested in properly typing the result, see [`crate::units::Per`]. This could
+/// provide proper typing for the output [`f64`]. Specifically, the most correct typing would be
+/// `Per<F, T, 1>`. This function only doesn't return that because it would corner the consumer
+/// into providing the order at compile time.
+///
+/// # Examples
+///
+/// ```rust
+/// # use sciutil::statistics::derivatives::backward_difference_derivative;
+/// #
+/// // Normal behavior:
+/// let list = &[(0.0, 1.0), (1.0, 3.0)];
+/// let derivative = (3.0 - 1.0) / (1.0 - 0.0);
+///
+/// assert_eq!(
+///     backward_difference_derivative(1, list),
+///     Some((1.0, derivative))
+/// );
+///
+/// // Division by zero from overlapping values should return [`f64::INFINITY`]:
+/// let (independent, derivative) =
+///     backward_difference_derivative(1, &[(1.0, 1.0), (1.0, 3.0)]).unwrap();
+///
+/// assert_eq!(independent, 1.0);
+/// assert!(derivative.is_infinite());
+/// ```
 #[must_use]
-fn backward_difference_derivative<T: Float, F: Float>(
+pub fn backward_difference_derivative<T: Float, F: Float>(
     index: usize,
     list: &[(T, F)],
 ) -> Option<(T, f64)> {
@@ -69,15 +152,47 @@ fn backward_difference_derivative<T: Float, F: Float>(
 ///
 /// Best used for the middle items in a list. For the first item in a list, see
 /// [`forward_difference_derivative`]. For the last item in a list, see
-/// [`backward_difference_derivative`].
+/// [`backward_difference_derivative`]. See [`first_order`] for a little more information, or the
+/// Typst document `/docs/derivatives.typ` for details.
+///
+/// Assumes that the list is sorted by ascending `T` values (smallest first, largest last).
 ///
 /// # Errors
 ///
 /// - Returns [`None`] if `index - 1` or `index + 1` is out of bounds in `list`.
 /// - Returns [`f64::INFINITY`] as the derivative if `t` at `index - 1` is equal to `t` at
 ///   `index + 1`.
+///
+/// # Units
+///
+/// If you're interested in properly typing the result, see [`crate::units::Per`]. This could
+/// provide proper typing for the output [`f64`]. Specifically, the most correct typing would be
+/// `Per<F, T, 1>`. This function only doesn't return that because it would corner the consumer
+/// into providing the order at compile time.
+///
+/// # Examples
+///
+/// ```rust
+/// # use sciutil::statistics::derivatives::central_difference_derivative;
+/// #
+/// // Normal behavior:
+/// let list = &[(0.0, 1.0), (1.0, 3.0), (2.0, 5.0)];
+/// let derivative = (5.0 - 1.0) / (2.0 - 0.0);
+///
+/// assert_eq!(
+///     central_difference_derivative(1, list),
+///     Some((1.0, derivative))
+/// );
+///
+/// // Division by zero from overlapping values should return [`f64::INFINITY`]:
+/// let (independent, derivative) =
+///     central_difference_derivative(1, &[(1.0, 1.0), (1.0, 3.0), (1.0, 5.0)]).unwrap();
+///
+/// assert_eq!(independent, 1.0);
+/// assert!(derivative.is_infinite());
+/// ```
 #[must_use]
-fn central_difference_derivative<T: Float, F: Float>(
+pub fn central_difference_derivative<T: Float, F: Float>(
     index: usize,
     list: &[(T, F)],
 ) -> Option<(T, f64)> {
@@ -95,6 +210,16 @@ fn central_difference_derivative<T: Float, F: Float>(
 /// Calculates the numerical derivative of `F` with respect to `T`.
 ///
 /// Assumes that the list is sorted by ascending `T` values (smallest first, largest last).
+///
+/// Note that the first and last data points will be the least accurate, because the
+/// [`central_difference_derivative`] is more accurate than the [`forward_difference_derivative`]
+/// and the [`backward_difference_derivative`]. For details, see the Typst document
+/// `/docs/derivatives.typ`. It explains the math behind the algorithms and performs the Taylor
+/// Series expansions for a formal explanation of the difference in error for the underlying
+/// algorithms. For a depiction of the difference in accuracy, here is a Desmos graph that
+/// reimplements this function:
+///
+/// <https://www.desmos.com/calculator/e2k5vughza>
 ///
 /// # Errors
 ///
@@ -186,12 +311,30 @@ pub fn first_order<T: Float, F: Float>(list: &[(T, F)]) -> Box<[(T, f64)]> {
 ///
 /// Assumes that the list is sorted by ascending `T` values (smallest first, largest last).
 ///
+/// Note that the first and last data points will be the least accurate, because the
+/// [`central_difference_derivative`] is more accurate than the [`forward_difference_derivative`]
+/// and the [`backward_difference_derivative`]. Unfortunately, the higher the order of the
+/// derivative, the further centrally this error will propagate. For details, see the Typst document
+/// `/docs/derivatives.typ`. It explains the math behind the algorithms and performs the Taylor
+/// Series expansions for a formal explanation of the difference in error for the underlying
+/// algorithms. For a depiction of the difference in accuracy, here is a Desmos graph that
+/// reimplements this function to the second order:
+///
+/// <https://www.desmos.com/calculator/e2k5vughza>
+///
 /// # Errors
 ///
 /// - `list.len() < 2` returns an empty list.
 /// - Overlapping `T` values will return unusual values.
 ///   - First-order derivatives will return [`f64::INFINITY`] as their derivative.
 ///   - Higher-order derivatives return a [`f64::NAN`] as their nth derivative.
+///
+/// # Units
+///
+/// If you're interested in properly typing the result, see [`crate::units::Per`]. This could
+/// provide proper typing for the output [`f64`]. Specifically, the most correct typing would be
+/// `Per<F, T, N>`, where `N` is the _nth_ order. This function only doesn't return that because it
+/// would corner the consumer into providing the order at compile time.
 ///
 /// # Examples
 ///
@@ -314,8 +457,43 @@ pub fn nth_order<T: Float, F: Float>(order: NonZeroU32, list: &[(T, F)]) -> Box<
 ///
 /// - Returns [`None`] if `index - 1`, or `index + 1` is out of bounds in `list`.
 /// - Overlapping `T` values will return a [`f64::NAN`] as their derivative.
+///
+/// # Units
+///
+/// If you're interested in properly typing the result, see [`crate::units::Per`]. This could
+/// provide proper typing for the output [`f64`]. Specifically, the most correct typing would be
+/// `Per<F, T, 1>`. This function only doesn't return that because it would corner the consumer
+/// into providing the order at compile time.
+///
+/// # Examples
+///
+/// ```rust
+/// # use sciutil::statistics::derivatives::derivative_time_shifted;
+/// #
+/// // Normal behavior:
+/// let list = &[(0.0, 1.0), (1.0, 3.0), (2.0, 5.0)];
+/// let derivative = ((5.0_f64 - 3.0) / (2.0 - 1.0))
+///     .mul_add(1.0 - 0.0, (3.0 - 1.0) / (1.0 - 0.0) * (2.0 - 1.0))
+///     / (2.0 - 0.0);
+///
+/// assert_eq!(
+///     derivative_time_shifted(1, list),
+///     Some((1.0, derivative))
+/// );
+///
+/// // Overlapping values should cause NaN derivatives:
+/// let (independent, derivative) =
+///     derivative_time_shifted(1, &[(1.0, 1.0), (1.0, 3.0), (1.0, 5.0)]).unwrap();
+/// dbg!(independent, derivative);
+///
+/// assert_eq!(independent, 1.0);
+/// assert!(derivative.is_nan());
+/// ```
 #[must_use]
-fn derivative_time_shifted<T: Float, F: Float>(index: usize, list: &[(T, F)]) -> Option<(T, f64)> {
+pub fn derivative_time_shifted<T: Float, F: Float>(
+    index: usize,
+    list: &[(T, F)],
+) -> Option<(T, f64)> {
     let get = |index: usize| {
         let (t, f) = list.get(index)?;
         Some((t.get(), f.get()))
@@ -360,6 +538,13 @@ fn derivative_time_shifted<T: Float, F: Float>(index: usize, list: &[(T, F)]) ->
 ///
 /// - Overlapping `T` values will return a [`f64::NAN`] as their derivative.
 /// - `list.len() < 3` returns an empty list.
+///
+/// # Units
+///
+/// If you're interested in properly typing the result, see [`crate::units::Per`]. This could
+/// provide proper typing for the output [`f64`]. Specifically, the most correct typing would be
+/// `Per<F, T, :>`. This function only doesn't return that because it would corner the consumer
+/// into providing the order at compile time.
 ///
 /// # Examples
 ///
@@ -517,8 +702,43 @@ pub fn first_order_time_shifted<T: Float, F: Float>(list: &[(T, F)]) -> Box<[(T,
 ///
 /// - Returns [`None`] if `index - 1` or `index + 1` is out of bounds in `list`.
 /// - Overlapping `T` values will return a [`f64::NAN`] as their second derivative.
+///
+/// # Units
+///
+/// If you're interested in properly typing the result, see [`crate::units::Per`]. This could
+/// provide proper typing for the output [`f64`]. Specifically, the most correct typing would be
+/// `Per<F, T, 2>`. This function only doesn't return that because it would corner the consumer
+/// into providing the order at compile time.
+///
+/// # Examples
+///
+/// ```rust
+/// # use sciutil::statistics::derivatives::second_derivative_time_shifted;
+/// #
+/// // Normal behavior:
+/// let list = &[(0.0, 1.0), (1.0, 3.0), (2.0, 5.0)];
+/// let derivative =
+///     2.0 * (
+///         (5.0_f64 - 3.0) / (2.0 - 1.0) // f'_(avg,23)
+///         - (3.0 - 1.0) / (1.0 - 0.0)
+///         // f'_(avg,12)
+///     ) / (2.0 - 0.0); // Delta t_13
+///
+/// assert_eq!(
+///     second_derivative_time_shifted(1, list),
+///     Some((1.0, derivative))
+/// );
+///
+/// // Overlapping values should cause NaN derivatives:
+/// let (independent, derivative) =
+///     second_derivative_time_shifted(1, &[(1.0, 1.0), (1.0, 3.0), (1.0, 5.0)]).unwrap();
+/// dbg!(independent, derivative);
+///
+/// assert_eq!(independent, 1.0);
+/// assert!(derivative.is_nan());
+/// ```
 #[must_use]
-fn second_derivative_time_shifted<T: Float, F: Float>(
+pub fn second_derivative_time_shifted<T: Float, F: Float>(
     index: usize,
     list: &[(T, F)],
 ) -> Option<(T, f64)> {
@@ -560,6 +780,13 @@ fn second_derivative_time_shifted<T: Float, F: Float>(
 ///
 /// - `list.len() < 3` returns an empty list.
 /// - Overlapping `T` values will return a [`f64::NAN`] as their second derivative.
+///
+/// # Units
+///
+/// If you're interested in properly typing the result, see [`crate::units::Per`]. This could
+/// provide proper typing for the output [`f64`]. Specifically, the most correct typing would be
+/// `Per<F, T, 2>`. This function only doesn't return that because it would corner the consumer
+/// into providing the order at compile time.
 ///
 /// # Examples
 ///
