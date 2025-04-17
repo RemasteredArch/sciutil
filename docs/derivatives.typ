@@ -245,6 +245,19 @@
 #show link: underline.with(offset: 0.15em)
 #let url(url, breakable: false) = box(block(breakable: breakable)[\<#link(url)>])
 
+// Make inline math equations unbreakable by line endings.
+//
+// The consequence, however, is that inline math equations that are _longer_ than the block they're
+// in _don't_ get broken when they should. After an hour and a half of trying and refining a few
+// techniques, I've quite confidently concluded that there's no workaround where equations are
+// unbreakable by default, because you cannot keep a snapshot of the equation function before the
+// show rule forces it to always box inline equations. This will be solved by revoke rules:
+//
+// <https://github.com/typst/typst/issues/420>
+//
+// In the meantime, if this is problematic, you'll have to disable this rule and only enable it on
+// a scope-by-scope basis or use `box` on an equation-by-equation basis.
+#show math.equation.where(block: false): box
 #set page(
   paper: "us-letter",
   numbering: "( 1 / 1 )",
@@ -325,14 +338,13 @@ For the unfamiliar, here are a few notable pieces of notation used in this docum
 == Definitions
 
 #block(breakable: false, width: 100%)[
-  Given some function $f$,
-  some constant offset $Dt$ (that may be positive or negative),
-  and some $eta in [t, t + Dt]$,
+  Given some function $f$ at some point $t$,
+  some constant offset $alpha$ (that may be positive or negative),
+  and some $eta in [t, t + alpha]$,
   we define:
 
   $$$
-  // alpha, n + 1; sub dt for alpha
-    R_(n + 1) &= (Dt)^(n + 1) / (n + 1)! f^((n + 1)) (t + eta)
+    R_(alpha, n) &= alpha^n / n! f^((n)) (t + eta)
   $$$
 
   This is something we'll use during Taylor Series expansions.
@@ -356,231 +368,66 @@ For the last item in the list,
 it relies on the backward difference derivative.
 For every other item in the list,
 it relies on the central difference derivative.
-Note that the forward and backward difference derivatives have greater error,
+Note that the forward and backward difference derivatives have greater error
+than the central difference derivative
+(see @calculating_error),
 so the first and last items will be less accurate than the middle items.
 This is mostly fine for the first-order derivative,
 but it's problematic for higher-order derivatives.
 
 === Central difference derivative
 
-Given some point $t_2$,
-the central difference derivative
-estimates the derivative of $f$ at $t_2$ as follows:
+#block(breakable: false, width: 100%)[
+  Given some point $t_2$,
+  the central difference derivative
+  estimates the derivative of $f$ at $t_2$ as follows:
 
-$$$
-  f^pr_2 = (f_3 - f_1) / (t_3 - t_1)
-$$$
+  $$$
+    f^pr_2 = (f_3 - f_1) / (t_3 - t_1)
+  $$$
+]
 
 This is the preferred method over the forward and backwards difference derivatives
 because its error from the actual value of $f pr$
-is proportional to $f prt$ instead of $f prd$,
+is proportional to $(Dt)^2$ instead of $Dt$
+(see @calculating_error),
 but it cannot be used on the first or last item of a list.
-
-==== Calculating error <central_derivative_error>
-
-Suppose $f$ is a continuous function
-with $n + 1$ derivatives,
-rather than a discrete set of points.
-We define the central difference derivative
-in terms of an arbitrary $Dt$ instead.
-
-$$$
-  f pr (t) &approx (f(t + Dt) - f(t - Dt)) / (2 Dt)\
-$$$
-
-#block(breakable: false, width: 100%)[
-  We can use the Taylor Series expansions of
-  $f(t + Dt)$ (see @forward_derivative_error)
-  and $f(t - Dt)$ (see @backward_derivative_error)
-  to find the exact value of our approximation:
-
-  $$$
-    &(f(t + Dt) - f(t - Dt)) / (2 Dt)\
-    &= #block[$ ((#block[$ &( f(t)
-      + Dt f pr (t)
-      + (Dt)^2 / 2! f prd (t)
-      + dots
-      + (Dt)^n / n! f^((n)) (t)
-      + R_(n + 1) )\
-    &""- ( f(t)
-      - Dt f pr (t)
-      + (Dt)^2 / 2! f pr (t)
-      - (Dt)^3 / 3! f prt (t)
-      + dots
-      + (-Dt)^n / n! f^((n)) (t)
-      + R_(n + 1)) $] )) / (2 Dt)
-    $]\
-    &= (
-      2 Dt f pr (t)
-      + 2 (Dt)^3 / 3! f prt (t)
-      + dots
-      + 2 (Dt)^m / m! f^((m)) (t)
-      + 2 R_(m + 1)
-    ) / (2 Dt) "     "| m = cases(
-      n &| n "is odd",
-      n - 1 &| n "is even",
-    )\
-    &= f pr (t)
-      + (Dt)^2 / 3! f prt (t)
-      + dots
-      + (Dt)^(m - 1) / m! f^((m)) (t)
-      + R_(m + 1) / Dt
-  $$$
-]
-
-Because the expansion of $f(t + Dt)$ is always positive
-and the expansion of $f(t - Dt)$
-is negative for terms with odd-ordered derivatives
-and positive for even-ordered derivatives,
-this expansion includes only the terms with odd-ordered derivatives.
-
-This expansion has the actual value of $f pr (t)$ present,
-so the rest is the error of our approximation.
-This error is on the order of $(Dt)^2$.
-Because for small $Dt$,
-increasingly higher powers of $Dt$ are increasingly small,
-all terms but the leading term are insignificant,
-giving us a leading order error term of $(Dt)^2 / 3! f prt (t)$.
-Further,
-that $Dt^2 << Dt$
-leads us to the claim that the central difference derivative
-is much more accurate than the forward and backward difference derivatives.
 
 === Forward difference derivative
 
-Given some point $t_2$,
-the forward difference derivative
-estimates the derivative of $f$ at $t_2$ as follows:
-
-$$$
-  f^pr_2 = (f_3 - f_2) / (t_3 - t_2)
-$$$
-
-The central difference derivative should be preferred over this method
-because its error from the actual value of $f pr$
-is proportional to $f prd$ instead of $f prt$,
-but this is the only option for the first item in a list.
-
-==== Calculating error <forward_derivative_error>
-
-Suppose $f$ is a continuous function
-with $n + 1$ derivatives,
-rather than a discrete set of points.
-We define the forward difference derivative
-in terms of an arbitrary $Dt$ instead.
-
-$$$
-  f pr (t) &approx (f(t + Dt) - f(t)) / Dt\
-$$$
-
 #block(breakable: false, width: 100%)[
-  We can use a Taylor Series expansion of $f(t + Dt)$
-  to find the exact value of our approximation:
+  Given some point $t_2$,
+  the forward difference derivative
+  estimates the derivative of $f$ at $t_2$ as follows:
 
   $$$
-    f(t + Dt) &= sum_(m = 0)^n (Dt)^m / m! f^((m)) (t) + R_(n + 1)\
-    f(t + Dt) &=
-    (Dt)^0 / 0! f^((0)) (t)
-    + (Dt)^1 / 1! f^((1)) (t)
-    + (Dt)^2 / 2! f^((2)) (t)
-    + dots
-    + (Dt)^n / n! f^((n)) (t)
-    + R_(n + 1)\
-    f(t + Dt) &=
-    f(t)
-    + Dt f pr (t)
-    + (Dt)^2 / 2! f prd (t)
-    + dots
-    + (Dt)^n / n! f^((n)) (t)
-    + R_(n + 1)\
-    (f(t + Dt) - f(t)) / Dt &=
-    f pr (t)
-    + Dt / 2! f prd (t)
-    + dots
-    + (Dt)^(n - 1) / n! f^((n)) (t)
-    + R_(n + 1) / Dt\
+    f^pr_2 = (f_3 - f_2) / (t_3 - t_2)
   $$$
 ]
 
-This expansion has the actual value of $f pr (t)$ present,
-so the rest is the error of our approximation.
-This error is on the order of $Dt$.
-For sufficiently small $Dt$,
-$(Dt)^n | n > 1$ is so much smaller than $Dt$ that all but the leading term are insignificant,
-giving us a leading order error term of $Dt / 2! f prd (t)$.
+The central difference derivative should be preferred over this method
+because its error from the actual value of $f pr$
+is proportional to $Dt$ instead of $(Dt)^2$
+(see @calculating_error),
+but this is the only option for the first item in a list.
 
 === Backward difference derivative
 
-Given some point $t_2$,
-the backward difference derivative
-estimates the derivative of $f$ at $t_2$ as follows:
-
-$$$
-  f^pr_2 = (f_2 - f_1) / (t_2 - t_1)
-$$$
-
-The central difference derivative should be preferred over this method
-because its error from the actual value of $f pr$
-is proportional to $f prd$ instead of $f prt$,
-but this is the only option for the last item in a list.
-
-==== Calculating error <backward_derivative_error>
-
-Suppose $f$ is a continuous function
-with $n + 1$ derivatives,
-rather than a discrete set of points.
-We define the backward difference derivative
-in terms of an arbitrary $Dt$ instead.
-
-$$$
-  f pr (t) &approx (f(t) - f(t - Dt)) / Dt\
-$$$
-
 #block(breakable: false, width: 100%)[
-  We can use a Taylor Series expansion of $f(t + Dt)$
-  to find the exact value of our approximation:
+  Given some point $t_2$,
+  the backward difference derivative
+  estimates the derivative of $f$ at $t_2$ as follows:
 
   $$$
-    f(t - Dt) &= sum_(m = 0)^n (-Dt)^m / m! f^((m)) (t) + R_(n + 1)\
-    f(t - Dt) &=
-    (-Dt)^0 / 0! f^((0)) (t)
-    + (-Dt)^1 / 1! f^((1)) (t)
-    + (-Dt)^2 / 2! f^((2)) (t)\
-    &#hide[$=$] "" + (-Dt)^3 / 3! f^((3)) (t)
-    + dots
-    + (-Dt)^n / n! f^((n)) (t)
-    + R_(n + 1)\
-    f(t - Dt) &=
-    f(t)
-    - Dt f pr (t)
-    + (Dt)^2 / 2! f pr (t)
-    - (Dt)^3 / 3! f prt (t)
-    + dots
-    + (-Dt)^n / n! f^((n)) (t)
-    + R_(n + 1)\
-    (f(t) - f(t - Dt)) / Dt &= - 1/ Dt (
-    - Dt f pr (t)
-    + (Dt)^2 / 2! f pr (t)
-    - (Dt)^3 / 3! f prt (t)
-    + dots
-    + (-Dt)^n / n! f^((n)) (t)
-    + R_(n + 1))\
-    (f(t) - f(t - Dt)) / Dt &=
-    f pr (t)
-    - Dt / 2! f pr (t)
-    + (Dt)^2 / 3! f prt (t)
-    - dots
-    - (-Dt)^(n - 1) / n! f^((n)) (t)
-    - R_(n + 1) / Dt\
+    f^pr_2 = (f_2 - f_1) / (t_2 - t_1)
   $$$
 ]
 
-This expansion has the actual value of $f pr (t)$ present,
-so the rest is the error of our approximation.
-This error is on the order of $Dt$.
-For sufficiently small $Dt$,
-$(Dt)^n | n > 1$ is so much smaller than $Dt$ that all but the leading term are insignificant,
-giving us a leading order error term of $- Dt / 2! f prd (t)$.
+The central difference derivative should be preferred over this method
+because its error from the actual value of $f pr$
+is proportional to $Dt$ instead of $(Dt)^2$
+(see @calculating_error),
+but this is the only option for the last item in a list.
 
 == Higher-order
 
@@ -608,6 +455,216 @@ but do so less because of how small $(sin x) prd$ is at $x = 0 $.
   ],
 )
 
+== Calculating error <calculating_error>
+
+By modifying the above (first-order) approximations to use functions instead of discrete points,
+we can use Taylor Series the get the exact and approximate error
+from the actual value of $f pr$ at any point.
+If we use the results to reason about the forms using discrete data points,
+we can justify the claim that the central difference derivative
+is more accurate than the forward or backward difference derivatives.
+
+The expansions (and the original algorithms) are based on
+Steve Brunton's YouTube video
+"Numerical Differentiation with Finite Difference Derivatives"
+#url("https://youtu.be/9fGaTU1-f-0").
+If any of this doesn't make sense,
+that video is a great explanation.
+Some of the syntax is loosely based on
+Xing Cai, et al.'s book
+"Elements of Scientific Computing,"
+pub. Springer, September 2010, pp. 21--22,
+#link("https://doi.org/10.1007/978-3-642-11299-7")[DOI 10.1007/978-3-642-11299-7].
+
+=== Error in the forward difference derivative <forward_derivative_error>
+
+#block(breakable: false, width: 100%)[
+  Suppose $f$ is a continuous function
+  with $n + 1$ derivatives,
+  rather than a discrete set of points.
+  We define the forward difference derivative
+  in terms of an arbitrary $Dt$ instead:
+
+  $$$
+    f pr (t) &= lh0 (f(t + h) - f(t)) / h\
+    f pr (t) &approx (f(t + Dt) - f(t)) / Dt\
+  $$$
+]
+
+#block(breakable: false, width: 100%)[
+  We can use a Taylor Series expansion of $f(t + Dt)$
+  to find the exact value of our approximation:
+
+  $$$
+    f(t + Dt) &= sum_(m = 0)^n (Dt)^m / m! f^((m)) (t) + R_(Dt, n + 1)\
+    f(t + Dt) &=
+    (Dt)^0 / 0! f^((0)) (t)
+    + (Dt)^1 / 1! f^((1)) (t)
+    + (Dt)^2 / 2! f^((2)) (t)
+    + dots
+    + (Dt)^n / n! f^((n)) (t)
+    + R_(Dt, n + 1)\
+    f(t + Dt) &=
+    f(t)
+    + Dt f pr (t)
+    + (Dt)^2 / 2! f prd (t)
+    + dots
+    + (Dt)^n / n! f^((n)) (t)
+    + R_(Dt, n + 1)\
+    (f(t + Dt) - f(t)) / Dt &=
+    f pr (t)
+    + Dt / 2! f prd (t)
+    + dots
+    + (Dt)^(n - 1) / n! f^((n)) (t)
+    + R_(Dt, n + 1) / Dt\
+  $$$
+]
+
+This expansion has the actual value of $f pr (t)$ present,
+so the rest is the error of our approximation.
+This error is on the order of $Dt$.
+For sufficiently small $Dt$,
+$(Dt)^n | n > 1$ is so much smaller than $Dt$ that all but the leading term are insignificant,
+giving us a leading order error term of $Dt / 2! f prd (t)$.
+
+=== Error in the backward difference derivative <backward_derivative_error>
+
+#block(breakable: false, width: 100%)[
+  Suppose $f$ is a continuous function
+  with $n + 1$ derivatives,
+  rather than a discrete set of points.
+  We define the backward difference derivative
+  in terms of an arbitrary $Dt$ instead:
+
+  $$$
+    f pr (t) &= lh0 (f(t) - f(t - h)) / h\
+    f pr (t) &approx (f(t) - f(t - Dt)) / Dt\
+  $$$
+]
+
+#block(breakable: false, width: 100%)[
+  We can use a Taylor Series expansion of $f(t + Dt)$
+  to find the exact value of our approximation:
+
+  $$$
+    f(t - Dt) &= sum_(m = 0)^n (-Dt)^m / m! f^((m)) (t) + R_(-Dt, n + 1)\
+    f(t - Dt) &=
+    (-Dt)^0 / 0! f^((0)) (t)
+    + (-Dt)^1 / 1! f^((1)) (t)
+    + (-Dt)^2 / 2! f^((2)) (t)\
+    &#hide[$=$] "" + (-Dt)^3 / 3! f^((3)) (t)
+    + dots
+    + (-Dt)^n / n! f^((n)) (t)
+    + R_(-Dt, n + 1)\
+    f(t - Dt) &=
+    f(t)
+    - Dt f pr (t)
+    + (Dt)^2 / 2! f pr (t)
+    - (Dt)^3 / 3! f prt (t)
+    + dots
+    + (-Dt)^n / n! f^((n)) (t)
+    + R_(-Dt, n + 1)\
+    (f(t) - f(t - Dt)) / Dt &= - 1/ Dt (
+    - Dt f pr (t)
+    + (Dt)^2 / 2! f pr (t)
+    - (Dt)^3 / 3! f prt (t)
+    + dots
+    + (-Dt)^n / n! f^((n)) (t)
+    + R_(-Dt, n + 1))\
+    (f(t) - f(t - Dt)) / Dt &=
+    f pr (t)
+    - Dt / 2! f pr (t)
+    + (Dt)^2 / 3! f prt (t)
+    - dots
+    - (-Dt)^(n - 1) / n! f^((n)) (t)
+    - R_(-Dt, n + 1) / Dx\
+  $$$
+]
+
+This expansion has the actual value of $f pr (t)$ present,
+so the rest is the error of our approximation.
+This error is on the order of $Dt$.
+For sufficiently small $Dt$,
+$(Dt)^n | n > 1$ is so much smaller than $Dt$ that all but the leading term are insignificant,
+giving us a leading order error term of $- Dt / 2! f prd (t)$.
+
+=== Error in the central difference derivative <central_derivative_error>
+
+#block(breakable: false, width: 100%)[
+  Suppose $f$ is a continuous function
+  with $n + 1$ derivatives,
+  rather than a discrete set of points.
+  We define the central difference derivative
+  in terms of an arbitrary $Dt$ instead:
+
+  $$$
+    f pr (t) &= lh0 (f(t + h) - f(t - h)) / (2 h)\
+    f pr (t) &approx (f(t + Dt) - f(t - Dt)) / (2 Dt)\
+  $$$
+]
+
+#block(breakable: false, width: 100%)[
+  We can use the Taylor Series expansions of
+  $f(t + Dt)$ (see @forward_derivative_error)
+  and $f(t - Dt)$ (see @backward_derivative_error)
+  to find the exact value of our approximation:
+
+  $$$
+    &(f(t + Dt) - f(t - Dt)) / (2 Dt)\
+    &= #block[$ ((#block[$ &( f(t)
+      + Dt f pr (t)
+      + (Dt)^2 / 2! f prd (t)
+      + dots
+      + (Dt)^n / n! f^((n)) (t)
+      + R_(Dt, n + 1) )\
+    &""- ( f(t)
+      - Dt f pr (t)
+      + (Dt)^2 / 2! f pr (t)
+      - (Dt)^3 / 3! f prt (t)
+      + dots
+      + (-Dt)^n / n! f^((n)) (t)
+      + R_(-Dt, n + 1)) $] )) / (2 Dt)
+    $]\
+    &= (
+      2 Dt f pr (t)
+      + 2 (Dt)^3 / 3! f prt (t)
+      + dots
+      + 2 (Dt)^m / m! f^((m)) (t)
+      + R_(Dt, n + 1)
+      - R_(-Dt, n + 1)
+    ) / (2 Dt) "    "| m = cases(
+      n &| n "is odd",
+      n - 1 &| n "is even",
+    )\
+    &= f pr (t)
+      + (Dt)^2 / 3! f prt (t)
+      + dots
+      + (Dt)^(m - 1) / m! f^((m)) (t)
+      + (
+        R_(Dt, n + 1)
+        - R_(-Dt, n + 1)
+      ) / (2 Dt)
+  $$$
+]
+
+Because the expansion of $f(t + Dt)$ is always positive
+and the expansion of $f(t - Dt)$
+is negative for terms with odd-ordered derivatives
+and positive for even-ordered derivatives,
+this expansion includes only the terms with odd-ordered derivatives.
+
+This expansion has the actual value of $f pr (t)$ present,
+so the rest is the error of our approximation.
+This error is on the order of $(Dt)^2$.
+Because for small $Dt$,
+increasingly higher powers of $Dt$ are increasingly small,
+all terms but the leading term are insignificant,
+giving us a leading order error term of $(Dt)^2 / 3! f prt (t)$.
+Further,
+that $(Dt)^2 << Dt$
+leads us to the claim that the central difference derivative
+is much more accurate than the forward and backward difference derivatives.
+
 = Time-shifted derivatives
 
 Time-shifted derivatives recognize that traditional "rise over run" derivatives
@@ -623,12 +680,14 @@ pub. _The Physics Teacher,_ vol. 35, April 1996, pp. 220--222,
 Time-shifted derivatives estimate the derivative at the start of a time interval ($f^pr_2$)
 instead of the average of a time interval ($f^pr_("avg", 23)$).
 
-The precise equation is as follows.
-For example, $t$ might be time, $f$ position, and $f pr$ velocity.
+#block(breakable: false, width: 100%)[
+  The precise equation is as follows.
+  For example, $t$ might be time, $f$ position, and $f pr$ velocity.
 
-$$$
-  f^pr_2 &= (f^pr_(avg, 23) Dt_12 + f^pr_(avg, 12) Dt_23) / Dt_13\
-$$$
+  $$$
+    f^pr_2 &= (f^pr_(avg, 23) Dt_12 + f^pr_(avg, 12) Dt_23) / Dt_13\
+  $$$
+]
 
 Where:
 
@@ -675,12 +734,14 @@ calculate the average derivative over a time interval ($f^pr_("avg", 23)$).
 A first-order time-shifted derivative estimates the derivative at the start of a time interval ($f^pr_2$),
 but the second-order time-shifted derivative is much simpler.
 
-The precise equation is as follows.
-For example, $t$ might be time, $f$ position, $f pr$ velocity, and $f prd$ acceleration.
+#block(breakable: false, width: 100%)[
+  The precise equation is as follows.
+  For example, $t$ might be time, $f$ position, $f pr$ velocity, and $f prd$ acceleration.
 
-$$$
-  f^prd_2 &= 2 (f^pr_(avg, 23) - f^pr_(avg, 12)) / (t_3 - t_1)\
-$$$
+  $$$
+    f^prd_2 &= 2 (f^pr_(avg, 23) - f^pr_(avg, 12)) / (t_3 - t_1)\
+  $$$
+]
 
 Where:
 
