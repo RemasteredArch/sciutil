@@ -16,7 +16,11 @@ use std::{
     num::{FpCategory, NonZeroIsize},
 };
 
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+
 /// Represents whether a number is positive or negative.
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
 pub enum Sign {
     #[default]
@@ -36,6 +40,7 @@ impl Display for Sign {
 }
 
 /// Represents a base-ten digit, from 0--9.
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
 pub enum Digit {
     #[default]
@@ -178,6 +183,7 @@ impl Display for Digit {
 /// assert_eq!(u32::from(ten), 10);
 /// assert_eq!(ten.add(1), [Digit::One, Digit::One].to_vec().into_boxed_slice());
 /// ```
+#[cfg_attr(feature = "serde", derive(Serialize))]
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
 pub struct DigitSlice<'a>(&'a [Digit]);
 
@@ -287,6 +293,7 @@ impl From<DigitSlice<'_>> for u32 {
 ///     ^
 ///     | `dot = 3`
 /// ```
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 #[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub struct Digits {
     /// The sign of the number represented by [`Self`].
