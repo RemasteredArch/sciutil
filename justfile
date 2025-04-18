@@ -45,3 +45,18 @@ typst-doc:
 watch:
     watchexec --quiet --clear --watch './src/' -- \
         'cargo doc && cargo t --quiet'
+
+ci: ci-rust ci-typst
+
+ci-rust:
+    cargo test --verbose
+    cargo clippy --verbose
+    cargo clippy --features 'serde' --verbose
+    cargo build --release --verbose
+    cargo fmt --all -- --check
+    cargo doc --verbose
+    cargo doc --verbose --document-private-items
+
+# This just uses the default Typst build step for now. I'm making a `ci-typst` recipe now because
+# I'm likely to add linting for Typst documents in the future.
+ci-typst: typst-doc
