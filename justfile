@@ -15,8 +15,9 @@ test:
     cargo test
 
 bench once='false':
-    #! /bin/sh
-    set -eu
+    #!/bin/sh
+    # Print lines as they're executed, error when accessing unset variables, and exit on any error.
+    set -exu
 
     if [ "{{once}}" = 'true' ] || [ "{{once}}" = 'once' ]; then
         cargo bench -- --ignored -- 'bench_'
@@ -31,6 +32,7 @@ bench once='false':
 
 check:
     cargo clippy
+    cargo fmt -- --check
 
 rust-doc:
     cargo doc
@@ -49,13 +51,23 @@ watch:
 ci: ci-rust ci-typst
 
 ci-rust:
+    #!/bin/sh
+    # Print lines as they're executed, error when accessing unset variables, and exit on any error.
+    set -exu
+    # Elevate all warnings to errors.
+    export RUSTFLAGS='-D warnings'
+
+    cargo build --verbose \
+        --release
     cargo test --verbose
     cargo clippy --verbose
-    cargo clippy --features 'serde' --verbose
-    cargo build --release --verbose
-    cargo fmt --all -- --check
+    cargo clippy --verbose \
+        --features 'serde'
+    cargo fmt --verbose -- --verbose \
+        --check
     cargo doc --verbose
-    cargo doc --verbose --document-private-items
+    cargo doc --verbose \
+        --features 'serde' --document-private-items
 
 # This just uses the default Typst build step for now. I'm making a `ci-typst` recipe now because
 # I'm likely to add linting for Typst documents in the future.
