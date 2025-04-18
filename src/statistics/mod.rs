@@ -54,13 +54,9 @@ pub fn mean<F: Float>(list: &[F]) -> F {
 /// $"stddev"(x) = sqrt( 1 / ("count"(x) - 1) sum_(n = 1)^"count"(x) (x_n - "mean"(x))^2 )$
 /// ```
 ///
-/// # Panics
-///
-/// Panics if `list.len() == 0`.
-///
 /// # Errors
 ///
-/// Returns a [`f64::NAN`] if `list.len() == 1`.
+/// Returns a [`f64::NAN`] if `list.len() <= 1`.
 ///
 /// # Examples
 ///
@@ -73,6 +69,11 @@ pub fn mean<F: Float>(list: &[F]) -> F {
 /// ```
 #[must_use]
 pub fn stddev<F: Float>(list: &[F]) -> F {
+    // Avoid overflow (during `0 - 1`) and divide by zero (from `1 - 1`).
+    if list.len() <= 1 {
+        return F::new(1.0 / 0.0 * 0.0);
+    }
+
     let mean = mean(list).get();
 
     #[expect(
