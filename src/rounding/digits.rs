@@ -16,11 +16,11 @@ use std::{
     num::{FpCategory, NonZeroIsize},
 };
 
-#[cfg(feature = "serde")]
-use serde::{Deserialize, Serialize};
+#[cfg(any(feature = "serde", test))]
+use serde::{Deserialize, Deserializer, Serialize};
 
 /// Represents whether a number is positive or negative.
-#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
+#[cfg_attr(any(feature = "serde", test), derive(Deserialize, Serialize))]
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
 pub enum Sign {
     #[default]
@@ -40,7 +40,7 @@ impl Display for Sign {
 }
 
 /// Represents a base-ten digit, from 0--9.
-#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
+#[cfg_attr(any(feature = "serde", test), derive(Deserialize, Serialize))]
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
 pub enum Digit {
     #[default]
@@ -183,7 +183,7 @@ impl Display for Digit {
 /// assert_eq!(u32::from(ten), 10);
 /// assert_eq!(ten.add(1), [Digit::One, Digit::One].to_vec().into_boxed_slice());
 /// ```
-#[cfg_attr(feature = "serde", derive(Serialize))]
+#[cfg_attr(any(feature = "serde", test), derive(Serialize))]
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
 pub struct DigitSlice<'a>(&'a [Digit]);
 
@@ -293,7 +293,8 @@ impl From<DigitSlice<'_>> for u32 {
 ///     ^
 ///     | `dot = 3`
 /// ```
-#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
+#[cfg_attr(any(feature = "serde", test), derive(Deserialize, Serialize))]
+#[cfg_attr(any(feature = "serde", test), serde(remote = "Self"))]
 #[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub struct Digits {
     /// The sign of the number represented by [`Self`].
@@ -309,6 +310,46 @@ pub struct Digits {
     ///
     /// - For `105.2060`, `digits = [1, 0, 5, 2, 0, 6, 0]`.
     digits: Box<[Digit]>,
+}
+
+// The hack that makes the below `Deserialize` implementation work (the `serde(remote = "Self")`)
+// also disables the derived `Serialized` implementation from being applied properly, so we just
+// have to make a quick wrapper implementation.
+#[cfg(any(feature = "serde", test))]
+impl Serialize for Digits {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        Self::serialize(self, serializer)
+    }
+}
+
+#[cfg(any(feature = "serde", test))]
+impl<'de> Deserialize<'de> for Digits {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        // Use the derived implementation for the actual deserialization.
+        let unchecked = Self::deserialize(deserializer)?;
+
+        // Verify that invariants are upheld.
+        if unchecked.digits.is_empty() {
+            return Err(serde::de::Error::custom(
+                "`Digits::digits` must have at least one digit",
+            ));
+        }
+
+        if unchecked.dot > unchecked.digits.len() {
+            return Err(serde::de::Error::custom(
+                "`Digits::dot` must be no greater than `Digits::digits.len()`",
+            ));
+        }
+
+        // Now assuredly valid.
+        Ok(unchecked)
+    }
 }
 
 impl Digits {
@@ -358,8 +399,9 @@ impl Digits {
     ///
     /// # Safety
     ///
-    /// Assumes that `dot` is at most `digits.len()`. Other guarantees may be added in the future
-    /// without notice, consider this an experimental API.
+    /// Assumes that `dot` is at most `digits.len()` and that `digits` has at least one digit.
+    /// Other guarantees may be added in the future without notice, consider this an experimental
+    /// API.
     #[must_use]
     pub const unsafe fn from_raw_parts(sign: Sign, dot: usize, digits: Box<[Digit]>) -> Self {
         Self { sign, dot, digits }

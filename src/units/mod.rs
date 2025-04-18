@@ -13,7 +13,7 @@
 
 use std::{fmt::Display, marker::PhantomData};
 
-#[cfg(feature = "serde")]
+#[cfg(any(feature = "serde", test))]
 use serde::{Deserialize, Serialize};
 
 /// Contains or represents a floating-point value, optionally with physical units.
@@ -90,7 +90,7 @@ impl Float for f64 {
 /// assert_eq!(with_uncertainty.min(), 4.0);
 /// assert_eq!(with_uncertainty.max(), 6.0);
 /// ```
-#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
+#[cfg_attr(any(feature = "serde", test), derive(Deserialize, Serialize))]
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
 pub struct UncertainFloat<F: Float> {
     /// The measured value.
@@ -150,7 +150,7 @@ impl<F: Float> UncertainFloat<F> {
 /// assert_eq!(Per::<Meters, Seconds, 3>::new(5.05).to_string(), "5.05 meters per second cubed");
 /// assert_eq!(Per::<Meters, Seconds, 4>::new(5.05).to_string(), "5.05 meters per second^4");
 /// ```
-#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
+#[cfg_attr(any(feature = "serde", test), derive(Deserialize, Serialize))]
 #[derive(Copy, Clone, PartialEq, PartialOrd, Debug, Default)]
 pub struct Per<F: Float, T: Float, const P: usize>(f64, PhantomData<F>, PhantomData<T>);
 
@@ -272,7 +272,7 @@ impl<T: Float, F: Float, const P: usize> From<Per<F, T, P>> for f64 {
 macro_rules! float_type {
     ($(#[$attribute:meta])* $unit:ident, $symbol:expr, $name_single:expr, $name_plural:expr,) => {
         $(#[$attribute])*
-        #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
+        #[cfg_attr(any(feature = "serde", test), derive(Deserialize, Serialize))]
         #[derive(Copy, Clone, PartialEq, PartialOrd, Debug, Default)]
         pub struct $unit(f64);
 

@@ -6,6 +6,8 @@
 // copy of the Mozilla Public License was not distributed with this file, You can obtain one at
 // <https://mozilla.org/MPL/2.0/>.
 
+use serde::{Deserialize, Serialize};
+
 use super::digits::{Digit, DigitSlice, Digits, Sign};
 
 macro_rules! digit {
@@ -350,4 +352,45 @@ fn bench_digit_slice_add() {
         // Will shrink to the minimum length.
         assert_eq!(SLICE_0_0_9.add(1), box_10);
     }
+}
+
+/// Serialize `start` into JSON and check that it serialized into `expected_json`, then deserialize
+/// it into a `T` and check that it deserialized back into `start`.
+///
+/// `str_buf` is the string that `start` is serialized into. It really shouldn't be a part of the
+/// API, but I couldn't figure out another way to fix the lifetime errors from
+/// `Deserialize<'de>`.
+fn serialize_and_deserialize<'de, T>(str_buf: &'de mut String, start: &T, expected_json: &str)
+where
+    T: Deserialize<'de> + Serialize + std::fmt::Debug + Eq,
+{
+    let mut buf: Vec<u8> = Vec::new();
+    start
+        .serialize(&mut serde_json::Serializer::new(std::io::BufWriter::new(
+            &mut buf,
+        )))
+        .expect("JSON serialization shouldn't (but could!) fail");
+
+    *str_buf = String::from_utf8(buf)
+        .expect("JSON serialization shouldn't (but could!) produce invalid UTF-8");
+    assert_eq!(str_buf, expected_json);
+
+    let deserialized: T = serde_json::from_slice(str_buf.as_bytes())
+        .expect("a serialized `T` should be (but could not be!) valid for deserialization");
+    assert_eq!(&deserialized, start);
+}
+
+#[test]
+fn digits_de_re_serialize() {
+    serialize_and_deserialize(
+        &mut String::new(),
+        &Digits::new(15.0),
+        r#"{"sign":"Positive","dot":2,"digits":["One","Five"]}"#,
+    );
+
+    serialize_and_deserialize(
+        &mut String::new(),
+        &Digits::new(-0.0),
+        r#"{"sign":"Negative","dot":1,"digits":["Zero"]}"#,
+    );
 }
