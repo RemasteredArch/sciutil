@@ -33,6 +33,14 @@ bench once='false':
 check:
     cargo clippy
     cargo fmt -- --check
+    just ci-toml
+    actionlint
+
+fmt:
+    cargo fmt
+    taplo fmt
+    mdformat .
+    yamlfmt .
 
 rust-doc:
     cargo doc
@@ -48,7 +56,7 @@ watch:
     watchexec --quiet --clear --watch './src/' -- \
         'cargo doc && cargo t --quiet'
 
-ci: ci-rust ci-typst
+ci: ci-rust ci-typst ci-yaml ci-toml ci-markdown
 
 ci-rust:
     #!/bin/sh
@@ -57,18 +65,60 @@ ci-rust:
     # Elevate all warnings to errors.
     export RUSTFLAGS='-D warnings'
 
+    # Build code normally.
     cargo build --verbose \
         --release
+
+    # Test code normally.
+    #
+    # As of right now, regular tests do include Serde tests, so no need for a `--all-features` run.
     cargo test --verbose
+
+    # Lint code.
     cargo clippy --verbose
+    # Lint code with all features enabled.
     cargo clippy --verbose \
-        --features 'serde'
+        --all-features
+
+    # Check that code is properly formatted.
     cargo fmt --verbose -- --verbose \
         --check
+
+    # Check that docs build cleanly.
     cargo doc --verbose
+    # Check that private docs build cleanly too.
     cargo doc --verbose \
-        --features 'serde' --document-private-items
+        --document-private-items
+    # Check docs build cleanly with all features enabled.
+    cargo doc --verbose \
+        --all-features
 
 # This just uses the default Typst build step for now. I'm making a `ci-typst` recipe now because
 # I'm likely to add linting for Typst documents in the future.
 ci-typst: typst-doc
+
+ci-yaml:
+    yamlfmt -lint .
+    # actionlint cannot recurse on its own without `.git/`, which `actions/checkout` does not
+    # provide. Accordingly, we do that ourselves.
+    #
+    # It is necessary to use `find` instead of just `actionlint .github/workflows/*` because GitHub
+    # is considering allowing subdirectories.
+    find '.github/workflows/' \
+        \( -name '*.yml' -o -name '*.yaml' \) \
+        -print0 \
+        | xargs -0 actionlint
+
+ci-toml:
+    taplo fmt --check --diff
+    taplo lint
+
+ci-markdown:
+    # Mdformat has a built-in `exclude` option, but this requires Python 3.13+. Ubuntu 24.04
+    # doesn't even ship that, and I'd rather do this than require a version of Python so new for a
+    # Markdown formatter.
+    find '.' \
+        -name '*.md' \
+        \! \( -path './target/*' -o -path './out/*' -o -path './git/*' \) \
+        -print0 \
+        | xargs -0 mdformat --check
