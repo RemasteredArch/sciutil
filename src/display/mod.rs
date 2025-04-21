@@ -8,7 +8,7 @@
 
 //! `display`: Miscellaneous facilities for pretty-printing things.
 
-use std::fmt::Display;
+use std::fmt::{Display, Write};
 
 /// Formats a list of values in a form that [Desmos](https://desmos.com/calculator) will accept as
 /// a list variable.
@@ -35,7 +35,7 @@ pub fn to_desmos_list(variable_name: &str, list: &[impl Display]) -> String {
     let mut str = format!("{variable_name} = [");
 
     for value in list {
-        str.push_str(&format!("{value},"));
+        write!(str, "{value},").expect("writing into a `String` should not fail");
     }
     if str.pop() == Some('[') {
         str.push('[');
