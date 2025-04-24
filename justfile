@@ -122,3 +122,6 @@ ci-markdown:
         \! \( -path './target/*' -o -path './out/*' -o -path './git/*' \) \
         -print0 \
         | xargs -0 mdformat --check
+
+act:
+    sudo "$(which act)" -P 'ubuntu-24.04=catthehacker/ubuntu:act-22.04' "$@"
