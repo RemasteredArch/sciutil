@@ -15,7 +15,7 @@ jobs:
         runs-on: ubuntu-24.04
         outputs:
             bin_path: ${{ steps.cargo.outputs.bin_path }}
-            versions_hash: ${{ steps.versions.outputs.versions }}
+            versions_hash: ${{ steps.versions.outputs.versions_hash }}
         steps:
             - name: Setup - Check latest versions
               id: versions
