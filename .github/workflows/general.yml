@@ -153,7 +153,17 @@ jobs:
                 key: "cargo-deps-${{ runner.os }}-${{ runner.arch }}-${{ needs.cargo-deps.outputs.versions_hash }}"
                 path: ${{ needs.cargo-deps.outputs.bin_path }}
                 fail-on-cache-miss: true
-            - run: echo "${{ needs.cargo-deps.outputs.bin_path }}" >> "$GITHUB_PATH"
+            - name: Setup - Add Cargo binaries to `$PATH`
+              run: |
+                echo "${{ needs.cargo-deps.outputs.bin_path }}" >> "$GITHUB_PATH"
+
+                # shellcheck disable=SC2016
+                echo 'Actual `$PATH`:'
+                echo "$PATH"
+
+                # shellcheck disable=SC2016
+                echo '`$GITHUB_PATH`:'
+                cat "$GITHUB_PATH"
             - uses: actions/checkout@v4
             - name: Action - Check TOML
               run: just ci-toml
@@ -168,7 +178,17 @@ jobs:
                 key: "cargo-deps-${{ runner.os }}-${{ runner.arch }}-${{ needs.cargo-deps.outputs.versions_hash }}"
                 path: ${{ needs.cargo-deps.outputs.bin_path }}
                 fail-on-cache-miss: true
-            - run: echo "${{ needs.cargo-deps.outputs.bin_path }}" >> "$GITHUB_PATH"
+            - name: Setup - Add Cargo binaries to `$PATH`
+              run: |
+                echo "${{ needs.cargo-deps.outputs.bin_path }}" >> "$GITHUB_PATH"
+
+                # shellcheck disable=SC2016
+                echo 'Actual `$PATH`:'
+                echo "$PATH"
+
+                # shellcheck disable=SC2016
+                echo '`$GITHUB_PATH`:'
+                cat "$GITHUB_PATH"
             - uses: actions/checkout@v4
             - name: Setup - Install go
               uses: actions/setup-go@v5
@@ -410,7 +430,17 @@ jobs:
                 key: "cargo-deps-${{ runner.os }}-${{ runner.arch }}-${{ needs.cargo-deps.outputs.versions_hash }}"
                 path: ${{ needs.cargo-deps.outputs.bin_path }}
                 fail-on-cache-miss: true
-            - run: echo "${{ needs.cargo-deps.outputs.bin_path }}" >> "$GITHUB_PATH"
+            - name: Setup - Add Cargo binaries to `$PATH`
+              run: |
+                echo "${{ needs.cargo-deps.outputs.bin_path }}" >> "$GITHUB_PATH"
+
+                # shellcheck disable=SC2016
+                echo 'Actual `$PATH`:'
+                echo "$PATH"
+
+                # shellcheck disable=SC2016
+                echo '`$GITHUB_PATH`:'
+                cat "$GITHUB_PATH"
             - uses: actions/checkout@v4
             - name: Setup - Install mdformat
               run: |
@@ -423,13 +453,27 @@ jobs:
         runs-on: ubuntu-24.04
         needs: cargo-deps
         steps:
-            - uses: actions/checkout@v4
             - name: Setup - Cargo binary caches
               uses: actions/cache/restore@v4
               with:
                 key: "cargo-deps-${{ runner.os }}-${{ runner.arch }}-${{ needs.cargo-deps.outputs.versions_hash }}"
                 path: ${{ needs.cargo-deps.outputs.bin_path }}
                 fail-on-cache-miss: true
-            - run: echo "${{ needs.cargo-deps.outputs.bin_path }}" >> "$GITHUB_PATH"
+            - name: Setup - Add Cargo binaries to `$PATH`
+              run: |
+                echo "${{ needs.cargo-deps.outputs.bin_path }}" >> "$GITHUB_PATH"
+
+                echo "Cargo binaries (${{ needs.cargo-deps.outputs.bin_path }}):"
+                # TODO: these don't actually need to be double quotes, do they?!
+                ls "${{ needs.cargo-deps.outputs.bin_path }}"
+
+                # shellcheck disable=SC2016
+                echo 'Actual `$PATH`:'
+                echo "$PATH"
+
+                # shellcheck disable=SC2016
+                echo '`$GITHUB_PATH`:'
+                cat "$GITHUB_PATH"
+            - uses: actions/checkout@v4
             - name: Action - Check Typst documents
               run: just ci-typst
