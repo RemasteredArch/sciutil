@@ -58,7 +58,7 @@ jobs:
             - name: Setup - Check and install packages
               run: |
                 installed_just="$(
-                    if command -v just &> /dev/null; then\
+                    if command -v just &> /dev/null; then
                         just --version \
                             | grep '^just [0-9.]\+$' \
                             | sed 's/just \(.*\)$/\1/'
@@ -71,10 +71,10 @@ jobs:
                 echo "Installed version of Just: $installed_just"
 
                 installed_typst="$(
-                    if command -v typst &> /dev/null; then\
+                    if command -v typst &> /dev/null; then
                         typst --version \
-                            | grep '^typst [0-9.]\+ ([0-9a-z]\+)$' \
-                            | sed 's/typst \(.*\) /\1/'
+                            | grep '^typst [0-9.]\+ ([0-9 a-z]\+)$' \
+                            | sed 's/typst \(.*\) ([0-9 a-z]\+)$/\1/'
                     else
                         echo ''
                     fi
@@ -84,10 +84,10 @@ jobs:
                 echo "Installed version of Typst: $installed_typst"
 
                 installed_typstyle="$(
-                    if command -v typstyle &> /dev/null; then\
+                    if command -v typstyle &> /dev/null; then
                         typstyle --version \
-                            | grep '^version: \+[0-9.]\+$' \
-                            | sed 's/^version: \+\(.*\)$/\1/'
+                            | grep '^Version: \+[0-9.]\+$' \
+                            | sed 's/^Version: \+\(.*\)$/\1/'
                     else
                         echo ''
                     fi
@@ -97,7 +97,7 @@ jobs:
                 echo "Installed version of typstyle: $installed_typstyle"
 
                 installed_taplo="$(
-                    if command -v taplo &> /dev/null; then\
+                    if command -v taplo &> /dev/null; then
                         taplo --version \
                             | grep '^taplo [0-9.]\+$' \
                             | sed 's/taplo \(.*\)$/\1/'
@@ -123,7 +123,11 @@ jobs:
                 echo 'Installing cargo'
 
                 # Assume that the Cargo version in the 24.04 container is new enough.
-                if command -v cargo &> /dev/null; then
+                #
+                # I'm purposefully using `cargo --version` instead of `command -v cargo` because
+                # this will catch the Cargo binaries from the cache that will be unhappy about not
+                # having the rest of the toolchain.
+                if cargo --version &> /dev/null; then
                     echo 'Cargo is already installed!'
                 else
                   # TODO: this could probably be a minimal version
