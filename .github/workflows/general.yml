@@ -11,72 +11,161 @@ name: General Lints
 on: [push, pull_request]
 
 jobs:
-    setup-just:
+    cargo-deps:
         runs-on: ubuntu-24.04
+        outputs:
+            bin_path: ${{ steps.cargo.outputs.bin_path }}
+            versions_hash: ${{ steps.versions.outputs.versions }}
         steps:
-            - name: Setup - Install Cargo
+            - name: Setup - Check latest versions
+              id: versions
               run: |
+                latest_crate_version() {
+                    local crate="$1"
+                    local name="${2:-$crate}"
+
+                    local latest
+                    latest="$(
+                        curl -fsSL \
+                            -H 'User-Agent: sciutil/general.yml (https://github.com/RemasteredArch/sciutil)'\
+                            "https://crates.io/api/v1/crates/$crate" \
+                            | grep --only-matching '"num": \?"[^"]\+"' \
+                            | head -n 1 \
+                            | sed 's/"num": \?"\(.*\)"/\1/'
+                    )"
+
+                    echo "latest_$name=$latest" >> "$GITHUB_OUTPUT"
+                    echo "$latest" >> 'cargo-versions.txt'
+                }
+
+                latest_crate_version just
+                latest_crate_version typst-cli typst
+                latest_crate_version typstyle
+                latest_crate_version taplo-cli taplo
+
+                hash="$(sha256sum 'cargo-versions.txt' | grep --only-matching '^[a-zA-Z0-9]\+')"
+                echo "versions_hash=$hash" >> "$GITHUB_OUTPUT"
+            - id: cargo
+              run: |
+                bin_path="${CARGO_INSTALL_ROOT:-${CARGO_HOME:-$HOME/.cargo}/bin}"
+                echo "bin_path=$bin_path" >> "$GITHUB_OUTPUT"
+                echo "$bin_path" >> "$GITHUB_PATH"
+            - name: Setup - Cargo binary caches
+              uses: actions/cache@v4
+              with:
+                key: "${{ github.job }}-${{ runner.os }}-${{ runner.arch }}-${{ steps.versions.outputs.versions_hash }}"
+                path: ${{ steps.cargo.outputs.bin_path }}
+            - name: Setup - Check and install packages
+              run: |
+                installed_just="$(
+                    if command -v just &> /dev/null; then\
+                        just --version \
+                            | grep '^just [0-9.]\+$' \
+                            | sed 's/just \(.*\)$/\1/'
+                    else
+                        echo ''
+                    fi
+                )"
+                latest_just="${{ steps.versions.outputs.latest_just }}"
+                echo "Latest version of Just: $latest_just"
+                echo "Installed version of Just: $installed_just"
+
+                installed_typst="$(
+                    if command -v typst &> /dev/null; then\
+                        typst --version \
+                            | grep '^typst [0-9.]\+ ([0-9a-z]\+)$' \
+                            | sed 's/typst \(.*\) /\1/'
+                    else
+                        echo ''
+                    fi
+                )"
+                latest_typst="${{ steps.versions.outputs.latest_typst }}"
+                echo "Latest version of Typst: $latest_typst"
+                echo "Installed version of Typst: $installed_typst"
+
+                installed_typstyle="$(
+                    if command -v typstyle &> /dev/null; then\
+                        typstyle --version \
+                            | grep '^version: \+[0-9.]\+$' \
+                            | sed 's/^version: \+\(.*\)$/\1/'
+                    else
+                        echo ''
+                    fi
+                )"
+                latest_typstyle="${{ steps.versions.outputs.latest_typstyle }}"
+                echo "Latest version of typstyle: $latest_typstyle"
+                echo "Installed version of typstyle: $installed_typstyle"
+
+                installed_taplo="$(
+                    if command -v taplo &> /dev/null; then\
+                        taplo --version \
+                            | grep '^taplo [0-9.]\+$' \
+                            | sed 's/taplo \(.*\)$/\1/'
+                    else
+                        echo ''
+                    fi
+                )"
+                latest_taplo="${{ steps.versions.outputs.latest_taplo }}"
+                echo "Latest version of taplo: $latest_taplo"
+                echo "Installed version of taplo: $installed_taplo"
+
+                old_packages=''
+                [ "$latest_just" = "$installed_just" ] || old_packages='just'
+                [ "$latest_typst" = "$installed_typst" ] || old_packages="$old_packages typst-cli"
+                [ "$latest_typstyle" = "$installed_typstyle" ] || old_packages="$old_packages typstyle"
+                [ "$latest_taplo" = "$installed_taplo" ] || old_packages="$old_packages taplo-cli"
+
+                [ "$old_packages" = '' ] && {
+                    echo 'All packages already up to date!'
+                    exit 0
+                }
+
+                echo 'Installing cargo'
+
                 # Assume that the Cargo version in the 24.04 container is new enough.
                 command -v cargo &> /dev/null && {
                     echo 'Cargo is already installed!'
                     exit 0
                 }
 
+                # TODO: this could probably be a minimal version
                 curl --proto '=https' --tlsv1.2 -sSf 'https://sh.rustup.rs' | sh -s -- -y
                 # shellcheck disable=SC1091
                 . "$HOME/.cargo/env"
-            - id: cargo
-              run: |
-                bin_path="${CARGO_INSTALL_ROOT:-${CARGO_HOME:-$HOME/.cargo}/bin}"
-                echo "bin_path=$bin_path" \
-                    >> "$GITHUB_OUTPUT"
-                echo "$bin_path" >> "$GITHUB_PATH"
-            - name: Setup - Cargo binary caches
-              uses: actions/cache@v4
-              with:
-                key: "${{ github.job }}-${{ runner.os }}-${{ runner.arch }}"
-                path: ${{ steps.cargo.outputs.bin_path }}
-            - name: Setup - Install Just
-              run: |
-                latest="$(
-                    cargo info just \
-                        | grep '^version: ' \
-                        | sed 's/version: \(.*\)$/\1/'
-                )"
-                installed="$(
-                    command -v just &> /dev/null &&\
-                        just --version \
-                            | grep '^just [0-9.]\+$' \
-                            | sed 's/just \(.*\)$/\1/'
-                )"
-                echo "Latest version of Just: $latest"
-                echo "Installed version of Just: $installed"
-                [ "$latest" = "$installed" ] && {
-                    echo 'Just is already up to date!'
-                    exit 0
-                }
 
-                cargo install just
+                echo 'Installing packages'
+                # I'm purposefully letting it split on spaces.
+                #
+                # shellcheck disable=SC2086
+                cargo install $old_packages
 
     toml:
         runs-on: ubuntu-24.04
-        needs: setup-just
-        # Doesn't have a SemVer tag for v0.9.*, we will have to update patch-by-patch.
-        container: tamasfe/taplo:0.9.3
+        needs: cargo-deps
         steps:
+            # Failing because the taplo image doesn't have Node in `$PATH`.
+            - name: Setup - Cargo binary caches
+              uses: actions/cache/restore@v4
+              with:
+                key: "cargo-deps-${{ runner.os }}-${{ runner.arch }}-${{ needs.cargo-deps.outputs.versions_hash }}"
+                path: ${{ needs.cargo-deps.outputs.bin_path }}
+                fail-on-cache-miss: true
+            - run: echo "${{ needs.cargo-deps.outputs.bin_path }}" >> "$GITHUB_PATH"
             - uses: actions/checkout@v4
-            # Debugging
-            - run: ls ~/.cargo/bin; echo "PATH:$(printf '\n\n')$PATH"; exit 1
             - name: Action - Check TOML
               run: just ci-toml
 
     yaml:
         runs-on: ubuntu-24.04
-        needs: setup-just
+        needs: cargo-deps
         steps:
-            # Debugging
-            - run: ls ~/.cargo/bin; echo "PATH:$(printf '\n\n')$PATH"
-            - run: echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+            - name: Setup - Cargo binary caches
+              uses: actions/cache/restore@v4
+              with:
+                key: "cargo-deps-${{ runner.os }}-${{ runner.arch }}-${{ needs.cargo-deps.outputs.versions_hash }}"
+                path: ${{ needs.cargo-deps.outputs.bin_path }}
+                fail-on-cache-miss: true
+            - run: echo "${{ needs.cargo-deps.outputs.bin_path }}" >> "$GITHUB_PATH"
             - uses: actions/checkout@v4
             - name: Setup - Install go
               uses: actions/setup-go@v5
@@ -307,44 +396,37 @@ jobs:
 
             - name: Action - Check YAML and GitHub Actions workflows
               run: just ci-yaml
-            - name: Action - Lint
-              # actionlint cannot recurse on its own without `.git/`, which `actions/checkout` does
-              # not provide. Accordingly, we do that ourselves.
-              #
-              # It is necessary to use `find` instead of just `actionlint .github/workflows/*`
-              # because GitHub is considering allowing subdirectories:
-              #
-              # <https://github.com/orgs/community/discussions/4174>
-              run: find .github/workflows/ \( -name '*.yml' -o -name '*.yaml' \) -print0 | xargs -0 actionlint
 
     markdown:
         runs-on: ubuntu-24.04
-        needs: setup-just
+        needs: cargo-deps
         steps:
+            - name: Setup - Cargo binary caches
+              uses: actions/cache/restore@v4
+              with:
+                key: "cargo-deps-${{ runner.os }}-${{ runner.arch }}-${{ needs.cargo-deps.outputs.versions_hash }}"
+                path: ${{ needs.cargo-deps.outputs.bin_path }}
+                fail-on-cache-miss: true
+            - run: echo "${{ needs.cargo-deps.outputs.bin_path }}" >> "$GITHUB_PATH"
             - uses: actions/checkout@v4
             - name: Setup - Install mdformat
               run: |
                 pipx install mdformat~=0.7
-                echo "$home/.local/bin" >> "$GITHUB_PATH"
+                echo "${PIPX_BIN_DIR:-$HOME/.local/bin}" >> "$GITHUB_PATH"
             - name: Action - Check Markdown file
               run: just ci-markdown
 
     typst:
         runs-on: ubuntu-24.04
-        needs: setup-just
+        needs: cargo-deps
         steps:
             - uses: actions/checkout@v4
-            - id: cargo
-              run: |
-                echo "bin_path=${CARGO_INSTALL_ROOT:-${CARGO_HOME:-$HOME/.cargo}/bin}" \
-                    >> "$GITHUB_OUTPUT"
             - name: Setup - Cargo binary caches
-              uses: actions/cache@v4
+              uses: actions/cache/restore@v4
               with:
-                key: "${{ github.job }}-${{ runner.os }}-${{ runner.arch }}"
-                path: ${{ steps.cargo.outputs.bin_path }}
-            - name: Setup - Install Typst and typstyle
-              run: |
-                cargo install typst-cli typstyle
+                key: "cargo-deps-${{ runner.os }}-${{ runner.arch }}-${{ needs.cargo-deps.outputs.versions_hash }}"
+                path: ${{ needs.cargo-deps.outputs.bin_path }}
+                fail-on-cache-miss: true
+            - run: echo "${{ needs.cargo-deps.outputs.bin_path }}" >> "$GITHUB_PATH"
             - name: Action - Check Typst documents
               run: just ci-typst
