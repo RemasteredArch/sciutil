@@ -57,6 +57,18 @@ jobs:
                 path: ${{ steps.cargo.outputs.bin_path }}
             - name: Setup - Check and install packages
               run: |
+                echo "Cargo binaries (${{ steps.cargo.outputs.bin_path }}):"
+                # TODO: these don't actually need to be double quotes, do they?!
+                ls "${{ steps.cargo.outputs.bin_path }}"
+
+                # shellcheck disable=SC2016
+                echo 'Actual `$PATH`:'
+                echo "$PATH"
+
+                # shellcheck disable=SC2016
+                echo '`$GITHUB_PATH`:'
+                cat "$GITHUB_PATH"
+
                 installed_just="$(
                     if command -v just &> /dev/null; then
                         just --version \
