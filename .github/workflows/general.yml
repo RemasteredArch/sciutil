@@ -123,15 +123,14 @@ jobs:
                 echo 'Installing cargo'
 
                 # Assume that the Cargo version in the 24.04 container is new enough.
-                command -v cargo &> /dev/null && {
+                if command -v cargo &> /dev/null; then
                     echo 'Cargo is already installed!'
-                    exit 0
-                }
-
-                # TODO: this could probably be a minimal version
-                curl --proto '=https' --tlsv1.2 -sSf 'https://sh.rustup.rs' | sh -s -- -y
-                # shellcheck disable=SC1091
-                . "$HOME/.cargo/env"
+                else
+                  # TODO: this could probably be a minimal version
+                  curl --proto '=https' --tlsv1.2 -sSf 'https://sh.rustup.rs' | sh -s -- -y
+                  # shellcheck disable=SC1091
+                  . "$HOME/.cargo/env"
+                fi
 
                 echo 'Installing packages'
                 # I'm purposefully letting it split on spaces.
