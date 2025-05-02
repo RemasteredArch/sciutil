@@ -169,6 +169,10 @@ jobs:
               run: |
                 echo "${{ needs.cargo-deps.outputs.bin_path }}" >> "$GITHUB_PATH"
 
+                echo "Cargo binaries (${{ needs.cargo-deps.outputs.bin_path }}):"
+                # TODO: these don't actually need to be double quotes, do they?!
+                ls "${{ needs.cargo-deps.outputs.bin_path }}"
+
                 # shellcheck disable=SC2016
                 echo 'Actual `$PATH`:'
                 echo "$PATH"
@@ -178,7 +182,11 @@ jobs:
                 cat "$GITHUB_PATH"
             - uses: actions/checkout@v4
             - name: Action - Check TOML
-              run: just ci-toml
+              run: |
+                # shellcheck disable=SC2016
+                echo '`$PATH`: '"$PATH"
+
+                just ci-toml
 
     yaml:
         runs-on: ubuntu-24.04
@@ -193,6 +201,10 @@ jobs:
             - name: Setup - Add Cargo binaries to `$PATH`
               run: |
                 echo "${{ needs.cargo-deps.outputs.bin_path }}" >> "$GITHUB_PATH"
+
+                echo "Cargo binaries (${{ needs.cargo-deps.outputs.bin_path }}):"
+                # TODO: these don't actually need to be double quotes, do they?!
+                ls "${{ needs.cargo-deps.outputs.bin_path }}"
 
                 # shellcheck disable=SC2016
                 echo 'Actual `$PATH`:'
@@ -430,7 +442,11 @@ jobs:
                 done < <(echo "${{ steps.goenv.outputs.PACKAGES }}" )
 
             - name: Action - Check YAML and GitHub Actions workflows
-              run: just ci-yaml
+              run: |
+                # shellcheck disable=SC2016
+                echo '`$PATH`: '"$PATH"
+
+                just ci-yaml
 
     markdown:
         runs-on: ubuntu-24.04
@@ -459,7 +475,11 @@ jobs:
                 pipx install mdformat~=0.7
                 echo "${PIPX_BIN_DIR:-$HOME/.local/bin}" >> "$GITHUB_PATH"
             - name: Action - Check Markdown file
-              run: just ci-markdown
+              run: |
+                # shellcheck disable=SC2016
+                echo '`$PATH`: '"$PATH"
+
+                just ci-markdown
 
     typst:
         runs-on: ubuntu-24.04
@@ -488,4 +508,8 @@ jobs:
                 cat "$GITHUB_PATH"
             - uses: actions/checkout@v4
             - name: Action - Check Typst documents
-              run: just ci-typst
+              run: |
+                # shellcheck disable=SC2016
+                echo '`$PATH`: '"$PATH"
+
+                just ci-typst
