@@ -62,9 +62,9 @@ jobs:
                 path: ${{ steps.cargo.outputs.bin_path }}
             - name: Setup - Check and install packages
               run: |
-                echo "Cargo binaries (${{ steps.cargo.outputs.bin_path }}):"
+                echo 'Cargo binaries (${{ steps.cargo.outputs.bin_path }}):'
                 # TODO: these don't actually need to be double quotes, do they?!
-                ls "${{ steps.cargo.outputs.bin_path }}"
+                ls '${{ steps.cargo.outputs.bin_path }}'
 
                 # shellcheck disable=SC2016
                 echo 'Actual `$PATH`:'
@@ -83,7 +83,7 @@ jobs:
                         echo ''
                     fi
                 )"
-                latest_just="${{ steps.versions.outputs.latest_just }}"
+                latest_just='${{ steps.versions.outputs.latest_just }}'
                 echo "Latest version of Just: $latest_just"
                 echo "Installed version of Just: $installed_just"
 
@@ -96,7 +96,7 @@ jobs:
                         echo ''
                     fi
                 )"
-                latest_typst="${{ steps.versions.outputs.latest_typst }}"
+                latest_typst='${{ steps.versions.outputs.latest_typst }}'
                 echo "Latest version of Typst: $latest_typst"
                 echo "Installed version of Typst: $installed_typst"
 
@@ -109,7 +109,7 @@ jobs:
                         echo ''
                     fi
                 )"
-                latest_typstyle="${{ steps.versions.outputs.latest_typstyle }}"
+                latest_typstyle='${{ steps.versions.outputs.latest_typstyle }}'
                 echo "Latest version of typstyle: $latest_typstyle"
                 echo "Installed version of typstyle: $installed_typstyle"
 
@@ -122,7 +122,7 @@ jobs:
                         echo ''
                     fi
                 )"
-                latest_taplo="${{ steps.versions.outputs.latest_taplo }}"
+                latest_taplo='${{ steps.versions.outputs.latest_taplo }}'
                 echo "Latest version of taplo: $latest_taplo"
                 echo "Installed version of taplo: $installed_taplo"
 
@@ -189,11 +189,10 @@ jobs:
                 fail-on-cache-miss: true
             - name: Setup - Add Cargo binaries to `$PATH`
               run: |
-                echo "${{ needs.cargo-deps.outputs.bin_path }}" >> "$GITHUB_PATH"
+                echo '${{ needs.cargo-deps.outputs.bin_path }}' >> "$GITHUB_PATH"
 
-                echo "Cargo binaries (${{ needs.cargo-deps.outputs.bin_path }}):"
-                # TODO: these don't actually need to be double quotes, do they?!
-                ls "${{ needs.cargo-deps.outputs.bin_path }}"
+                echo 'Cargo binaries (${{ needs.cargo-deps.outputs.bin_path }}):'
+                ls '${{ needs.cargo-deps.outputs.bin_path }}'
 
                 # shellcheck disable=SC2016
                 echo 'Actual `$PATH`:'
@@ -222,11 +221,10 @@ jobs:
                 fail-on-cache-miss: true
             - name: Setup - Add Cargo binaries to `$PATH`
               run: |
-                echo "${{ needs.cargo-deps.outputs.bin_path }}" >> "$GITHUB_PATH"
+                echo '${{ needs.cargo-deps.outputs.bin_path }}' >> "$GITHUB_PATH"
 
-                echo "Cargo binaries (${{ needs.cargo-deps.outputs.bin_path }}):"
-                # TODO: these don't actually need to be double quotes, do they?!
-                ls "${{ needs.cargo-deps.outputs.bin_path }}"
+                echo 'Cargo binaries (${{ needs.cargo-deps.outputs.bin_path }}):'
+                ls '${{ needs.cargo-deps.outputs.bin_path }}'
 
                 # shellcheck disable=SC2016
                 echo 'Actual `$PATH`:'
@@ -461,7 +459,7 @@ jobs:
                     go install "$package_path/cmd/$package_bin@$package_version"
 
                     end_group
-                done < <(echo "${{ steps.goenv.outputs.PACKAGES }}" )
+                done < <(echo '${{ steps.goenv.outputs.PACKAGES }}' )
 
             - name: Action - Check YAML and GitHub Actions workflows
               run: |
@@ -482,7 +480,7 @@ jobs:
                 fail-on-cache-miss: true
             - name: Setup - Add Cargo binaries to `$PATH`
               run: |
-                echo "${{ needs.cargo-deps.outputs.bin_path }}" >> "$GITHUB_PATH"
+                echo '${{ needs.cargo-deps.outputs.bin_path }}' >> "$GITHUB_PATH"
 
                 # shellcheck disable=SC2016
                 echo 'Actual `$PATH`:'
@@ -515,11 +513,11 @@ jobs:
                 fail-on-cache-miss: true
             - name: Setup - Add Cargo binaries to `$PATH`
               run: |
-                echo "${{ needs.cargo-deps.outputs.bin_path }}" >> "$GITHUB_PATH"
+                echo '${{ needs.cargo-deps.outputs.bin_path }}' >> "$GITHUB_PATH"
 
-                echo "Cargo binaries (${{ needs.cargo-deps.outputs.bin_path }}):"
+                echo 'Cargo binaries (${{ needs.cargo-deps.outputs.bin_path }}):'
                 # TODO: these don't actually need to be double quotes, do they?!
-                ls "${{ needs.cargo-deps.outputs.bin_path }}"
+                ls '${{ needs.cargo-deps.outputs.bin_path }}'
 
                 # shellcheck disable=SC2016
                 echo 'Actual `$PATH`:'
