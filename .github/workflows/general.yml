@@ -47,7 +47,12 @@ jobs:
                 echo "versions_hash=$hash" >> "$GITHUB_OUTPUT"
             - id: cargo
               run: |
-                bin_path="${CARGO_INSTALL_ROOT:-${CARGO_HOME:-$HOME/.cargo}/bin}"
+                cargo_bin_path="${CARGO_INSTALL_ROOT:-${CARGO_HOME:-$HOME/.cargo}/bin}"
+                echo "cargo_bin_path=$cargo_bin_path" >> "$GITHUB_OUTPUT"
+                echo "$cargo_bin_path" >> "$GITHUB_PATH"
+
+                bin_path="$HOME/.local/bin/sciutil-tools"
+                mkdir -p "$bin_path"
                 echo "bin_path=$bin_path" >> "$GITHUB_OUTPUT"
                 echo "$bin_path" >> "$GITHUB_PATH"
             - name: Setup - Cargo binary caches
@@ -122,10 +127,23 @@ jobs:
                 echo "Installed version of taplo: $installed_taplo"
 
                 old_packages=''
-                [ "$latest_just" = "$installed_just" ] || old_packages='just'
-                [ "$latest_typst" = "$installed_typst" ] || old_packages="$old_packages typst-cli"
-                [ "$latest_typstyle" = "$installed_typstyle" ] || old_packages="$old_packages typstyle"
-                [ "$latest_taplo" = "$installed_taplo" ] || old_packages="$old_packages taplo-cli"
+                old_bins=''
+                [ "$latest_just" = "$installed_just" ] || {
+                    old_packages='just'
+                    old_bins='just'
+                }
+                [ "$latest_typst" = "$installed_typst" ] || {
+                    old_packages="$old_packages typst-cli"
+                    old_bins="$old_bins typst"
+                }
+                [ "$latest_typstyle" = "$installed_typstyle" ] || {
+                    old_packages="$old_packages typstyle"
+                    old_bins="$old_bins typstyle"
+                }
+                [ "$latest_taplo" = "$installed_taplo" ] || {
+                    old_packages="$old_packages taplo-cli"
+                    old_bins="$old_bins taplo"
+                }
 
                 [ "$old_packages" = '' ] && {
                     echo 'All packages already up to date!'
@@ -153,6 +171,10 @@ jobs:
                 #
                 # shellcheck disable=SC2086
                 cargo install $old_packages
+                # shellcheck disable=SC2086
+                for binary in $old_bins; do
+                    mv "${{ steps.cargo.outputs.cargo_bin_path }}/$binary" "${{ steps.cargo.outputs.bin_path }}/$binary"
+                done
 
     toml:
         runs-on: ubuntu-24.04
