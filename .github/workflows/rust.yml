@@ -1,0 +1,85 @@
+# SPDX-License-Identifier: MPL-2.0
+#
+# Copyright © 2025 RemasteredArch
+#
+# This Source Code Form is subject to the terms of the Mozilla Public License, version 2.0. If a
+# copy of the Mozilla Public License was not distributed with this file, You can obtain one at
+# <https://mozilla.org/MPL/2.0/>.
+
+name: Rust (build, lint, and test)
+
+on:
+    push:
+        paths:
+            - '**.rs'
+            - '**.toml'
+            - '**.lock'
+    pull_request:
+        paths:
+            - '**.rs'
+            - '**.toml'
+            - '**.lock'
+
+env:
+    # Equivalent to attaching `--verbose` to every `cargo` command.
+    CARGO_TERM_VERBOSE: true
+
+# These jobs are based on `ci-just` in `/justfile`. Don't forget to update that (or ping somebody
+# else to do so)!
+jobs:
+    build:
+        runs-on: ubuntu-24.04
+        steps:
+            - uses: actions/checkout@v4
+            - uses: actions-rust-lang/setup-rust-toolchain@v1
+            - name: Build dev profile
+              run: cargo build
+            - name: Build release profile
+              run: cargo build --release
+
+    test:
+        runs-on: ubuntu-24.04
+        needs: build
+        steps:
+            - uses: actions/checkout@v4
+            - uses: actions-rust-lang/setup-rust-toolchain@v1
+              # Test code normally.
+              #
+              # As of right now, regular tests do include Serde tests, so no need for a `--all-features` run.
+            - name: Run tests
+              run: cargo test
+
+    lint:
+        runs-on: ubuntu-24.04
+        needs: build
+        steps:
+            - uses: actions/checkout@v4
+            - uses: actions-rust-lang/setup-rust-toolchain@v1
+              with:
+                components: rustfmt,clippy
+            - name: Check formatting
+              # `cargo fmt` doesn't seem to inherit `CARGO_TERM_VERBOSE` for both Cargo and
+              # Rustfmt, so it's necessary to be explicit with `--verbose`.
+              run: cargo fmt --verbose -- --verbose --check
+            - name: Lint code
+              run: |
+                # Lint code.
+                cargo clippy
+                # Lint code with all features enabled.
+                cargo clippy --all-features
+
+    doc:
+        runs-on: ubuntu-24.04
+        # Does it need that?
+        needs: build
+        steps:
+            - uses: actions/checkout@v4
+            - uses: actions-rust-lang/setup-rust-toolchain@v1
+            - name: Check code documentation
+              run: |
+                # Check that docs build cleanly.
+                cargo doc
+                # Check that private docs build cleanly too.
+                cargo doc --document-private-items
+                # Check docs build cleanly with all features enabled.
+                cargo doc --all-features

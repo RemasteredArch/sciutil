@@ -58,6 +58,8 @@ watch:
 
 ci: ci-rust ci-typst ci-yaml ci-toml ci-markdown
 
+# This is also replicated in `/.github/workflows/rust.yml`. Don't forget to update that (or ping
+# somebody else to do so)!
 ci-rust:
     #!/bin/sh
     # Print lines as they're executed, error when accessing unset variables, and exit on any error.
@@ -123,5 +125,12 @@ ci-markdown:
         -print0 \
         | xargs -0 mdformat --check
 
-act:
-    sudo "$(which act)" -P 'ubuntu-24.04=catthehacker/ubuntu:act-22.04' "$@"
+act *FLAGS:
+    # `FLAGS` will split on spaces.
+    sudo "$(which act)" -P 'ubuntu-24.04=catthehacker/ubuntu:act-22.04' {{ FLAGS }}
+
+act-general:
+    just act --workflows './.github/workflows/general.yml'
+
+act-rust:
+    just act --workflows './.github/workflows/rust.yml'
