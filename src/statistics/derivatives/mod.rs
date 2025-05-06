@@ -226,6 +226,13 @@ pub fn central_difference_derivative<T: Float, F: Float>(
 /// - `list.len() < 2` returns an empty list.
 /// - Overlapping `T` values will return [`f64::INFINITY`] as their derivative.
 ///
+/// # Units
+///
+/// If you're interested in properly typing the result, see [`crate::units::Per`]. This could
+/// provide proper typing for the output [`f64`]. Specifically, the most correct typing would be
+/// `Per<F, T, 1>`. This function only doesn't return that because it would corner the consumer
+/// into providing the order at compile time.
+///
 /// # Examples
 ///
 /// Expected behavior:
@@ -543,7 +550,7 @@ pub fn derivative_time_shifted<T: Float, F: Float>(
 ///
 /// If you're interested in properly typing the result, see [`crate::units::Per`]. This could
 /// provide proper typing for the output [`f64`]. Specifically, the most correct typing would be
-/// `Per<F, T, :>`. This function only doesn't return that because it would corner the consumer
+/// `Per<F, T, 1>`. This function only doesn't return that because it would corner the consumer
 /// into providing the order at compile time.
 ///
 /// # Examples
