@@ -95,6 +95,17 @@ ci-rust:
     cargo doc --verbose \
         --all-features
 
+    # Check dependencies for duplicated/banned crates, incompatible licenses, and untrusted
+    # sources.
+    cargo deny --all-features check \
+        bans licenses sources
+    # Check for security advisories from dependencies (or unmaintained/yanked dependencies).
+    #
+    # Seperated from other `cargo deny` checks to distinguish these warnings from the more
+    # predictable checks.
+    cargo deny --all-features check \
+        advisories
+
 # This just uses the default Typst build step for now. I'm making a `ci-typst` recipe now because
 # I'm likely to add linting for Typst documents in the future.
 ci-typst: typst-doc

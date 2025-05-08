@@ -45,7 +45,8 @@ jobs:
             - uses: actions-rust-lang/setup-rust-toolchain@v1
               # Test code normally.
               #
-              # As of right now, regular tests do include Serde tests, so no need for a `--all-features` run.
+              # As of right now, regular tests do include Serde tests, so no need for a
+              # `--all-features` run.
             - name: Run tests
               run: cargo test
 
@@ -83,3 +84,29 @@ jobs:
                 cargo doc --document-private-items
                 # Check docs build cleanly with all features enabled.
                 cargo doc --all-features
+
+    # Check dependencies for duplicated/banned crates, incompatible licenses, and untrusted
+    # sources.
+    deny-other:
+        runs-on: ubuntu-24.04
+        # Does it need that?
+        needs: build
+        steps:
+            - uses: actions/checkout@v4
+            - uses: EmbarkStudios/cargo-deny-action@v2
+              with:
+                command: check bans licenses sources
+
+    # Check for security advisories from dependencies (or unmaintained/yanked dependencies).
+    #
+    # Seperated from other `cargo deny` checks to distinguish these warnings from the more
+    # predictable checks.
+    deny-security:
+        runs-on: ubuntu-24.04
+        # Does it need that?
+        needs: build
+        steps:
+            - uses: actions/checkout@v4
+            - uses: EmbarkStudios/cargo-deny-action@v2
+              with:
+                command: check advisories

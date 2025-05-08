@@ -1,0 +1,7 @@
+# <https://embarkstudios.github.io/cargo-deny/checks/licenses/cfg.html>
+[licenses]
+# List of explicitly allowed licenses. I'm open to adding more! This is just the (almost) minimal
+# list to satisfy current dependencies, but adding more is certainly an option.
+#
+# <https://spdx.org/licenses/>
+allow = ["MIT", "Apache-2.0", "MPL-2.0", "Unicode-3.0"]
