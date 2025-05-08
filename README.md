@@ -22,17 +22,22 @@ A library for scientific computation.
 
 ## Stability
 
-For the time being, this library make no guarantees of stability,
-it's code I will write, update, and break whenever I feel the need or desire to.
-I am writing this for my own use,
-but if you benefit from this library,
-I would be happy to make a stronger stability guarantee.
-You are also welcome to request features
-or make contributions.
+Until it is published on <https://crates.io>,
+this library make no guarantees of stability.
+This is code I will write, update, and break whenever I feel the need or desire to.
+That being said,
+you are encouraged to request features or make contributions!
 
 A part of these breaking changes includes possible name changes,
 if "sciutil" is ever to be registered by someone else
 or I otherwise decide there's a better name.
+
+### MSRV
+
+sciutil supports only the latest stable Rust.
+Older version _may_ work, but are not tested.
+MSRV naturally being bumped as new stable versions release
+is not considered a breaking change.
 
 ## Looking forwards
 
@@ -40,6 +45,9 @@ There's a few features I'm looking to add in the future.
 I'm not certain if I will ever add them,
 but feature requests and pull requests are welcome.
 
+- Numeric integration.
+- Gate-to-gate timing
+  (to get velocity out of photogates).
 - Calculating a best-fit line with a linear regression is something I want,
   but I am not familiar enough with linear algebra to do that easily,
   as it's not something I understand.
@@ -51,6 +59,21 @@ but feature requests and pull requests are welcome.
   and not having sciutil's rounding implementation
   are limiting for me.
   I'm hesitant to do it because I know it will involve a lot of work.
+
+## Documentation
+
+sciutil has three kinds of documentation:
+
+- Project documentation,
+  in standard Markdown files.
+- Code documentation,
+  inline in code and rendered with Rustdoc.
+  - Render with `cargo doc` or `cargo doc --open`.
+- Algorithm documentation,
+  in [Typst](https://typst.app/) files and rendered to PDF.
+  - Works out the math behind some of the algorithms implemented in sciutil.
+  - Render with [`just typst-doc`](https://just.systems/)
+    or per-file with [`typst compile`](https://crates.io/crates/typst-cli).
 
 ## License
 
