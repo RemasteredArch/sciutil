@@ -31,7 +31,7 @@ pub enum Sign {
 impl Display for Sign {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let as_str = match self {
-            Self::Positive => "",
+            Self::Positive => "+",
             Self::Negative => "-",
         };
 
@@ -1034,7 +1034,11 @@ impl TryFrom<f64> for Digits {
 
 impl Display for Digits {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut str = self.sign.to_string();
+        let mut str = String::with_capacity(self.digits.len());
+
+        if matches!(self.sign, Sign::Negative) {
+            str.push('-');
+        }
 
         // Print zero as `"0"`, not `".0"`.
         if self.digits.len() == 1 && self.digits[0] == Digit::Zero && self.dot == 0 {
