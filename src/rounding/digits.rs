@@ -136,7 +136,6 @@ impl TryFrom<char> for Digit {
 }
 
 impl From<Digit> for char {
-    #[must_use]
     fn from(digit: Digit) -> Self {
         const ASCII_ZERO: u8 = 0b0011_0000;
 
@@ -149,14 +148,12 @@ impl From<Digit> for char {
 }
 
 impl From<Digit> for u8 {
-    #[must_use]
     fn from(digit: Digit) -> Self {
         digit.get()
     }
 }
 
 impl From<Digit> for u32 {
-    #[must_use]
     fn from(digit: Digit) -> Self {
         digit.get().into()
     }
@@ -264,7 +261,6 @@ impl From<&DigitSlice<'_>> for u32 {
         clippy::cast_possible_truncation,
         reason = "I've never seen the number of digits in an `f64` surpass `u32::MAX`"
     )]
-    #[must_use]
     fn from(digits: &DigitSlice<'_>) -> Self {
         let mut value = 0;
 
@@ -278,7 +274,6 @@ impl From<&DigitSlice<'_>> for u32 {
 }
 
 impl From<DigitSlice<'_>> for u32 {
-    #[must_use]
     fn from(digits: DigitSlice<'_>) -> Self {
         (&digits).into()
     }
@@ -309,6 +304,7 @@ pub struct Digits {
     /// The list of digits contained by a number.
     ///
     /// - For `105.2060`, `digits = [1, 0, 5, 2, 0, 6, 0]`.
+    #[expect(clippy::struct_field_names, reason = "this is the core of the struct")]
     digits: Box<[Digit]>,
 }
 
@@ -986,7 +982,6 @@ impl Digits {
 }
 
 impl Default for Digits {
-    #[must_use]
     fn default() -> Self {
         Self {
             sign: Sign::Positive,

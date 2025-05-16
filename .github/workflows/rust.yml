@@ -85,7 +85,7 @@ jobs:
                 # Check docs build cleanly with all features enabled.
                 cargo doc --all-features
 
-    # Check dependencies for duplicated/banned crates, incompatible licenses, and untrusted
+    # Check dependencies for duplicate/banned crates, incompatible licenses, and untrusted
     # sources.
     deny-other:
         runs-on: ubuntu-24.04
