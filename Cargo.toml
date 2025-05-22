@@ -12,6 +12,7 @@ edition = "2024"
 default = []
 
 [dependencies]
+paste = "1.0.15"
 # Optionally derive `Serialize`/`Deserialize` on sciutil's types, enabled with `--features serde`.
 serde = { version = "1.0", features = ["derive"], optional = true }
 thiserror = "2.0.12"
