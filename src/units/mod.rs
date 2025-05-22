@@ -397,7 +397,7 @@ float_types![
     (Meter, "m",),
     (Centimeter, "cm",),
     (Millimeter, "mm",),
-    (Micrometer, "mm",),
+    (Micrometer, "μm",),
 ];
 
 /// Defines conversions between units. Takes in a list of parentheses-wrapped conversions. For each

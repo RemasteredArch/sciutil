@@ -9,7 +9,8 @@ allow = ["MIT", "Apache-2.0", "MPL-2.0", "Unicode-3.0"]
 # <https://embarkstudios.github.io/cargo-deny/checks/advisories/cfg.html>
 [advisories]
 ignore = [
-    # Advisory: `dtolnay/paste` is unmaintained. This is fine to ignore because it's not abandoned, it's just finished:
+    # Advisory: `dtolnay/paste` is unmaintained. This is fine to ignore because it's not abandoned,
+    # it's just finished:
     #
     # > For my own use cases I would use paste since it is 'finished' and does everything I need.
     #
