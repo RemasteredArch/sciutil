@@ -31,9 +31,17 @@
 #[cfg(test)]
 mod test;
 
-use crate::units::Float;
+use crate::{err::OutOfBoundsIndexError, units::Float};
 
 use std::num::NonZeroU32;
+
+/// Perform an operation that returns [`Option`], cast [`None`] to [`OutOfBoundsIndexError`], and
+/// attempt to return on an error.
+macro_rules! oob {
+    ($op:expr) => {
+        Option::ok_or($op, OutOfBoundsIndexError)?
+    };
+}
 
 /// Calculates the forward difference derivative. Returns `T` at `index` and the change in `F` over
 /// `T` between `index` and `index + 1`.
@@ -46,7 +54,7 @@ use std::num::NonZeroU32;
 ///
 /// # Errors
 ///
-/// - Returns [`None`] if `index` or `index + 1` is out of bounds in `list`.
+/// - Returns [`OutOfBoundsIndexError`] if `index` or `index + 1` is out of bounds in `list`.
 /// - Returns [`f64::INFINITY`] as the derivative if `t` at `index` is equal to `t` at `index + 1`.
 ///
 /// # Units
@@ -67,7 +75,7 @@ use std::num::NonZeroU32;
 ///
 /// assert_eq!(
 ///     forward_difference_derivative(0, list),
-///     Some((0.0, derivative))
+///     Ok((0.0, derivative))
 /// );
 ///
 /// // Division by zero from overlapping values should return [`f64::INFINITY`]:
@@ -77,15 +85,14 @@ use std::num::NonZeroU32;
 /// assert_eq!(independent, 1.0);
 /// assert!(derivative.is_infinite());
 /// ```
-#[must_use]
 pub fn forward_difference_derivative<T: Float, F: Float>(
     index: usize,
     list: &[(T, F)],
-) -> Option<(T, f64)> {
-    let (t_2, f_2) = list.get(index)?;
-    let (t_3, f_3) = list.get(index + 1)?;
+) -> Result<(T, f64), OutOfBoundsIndexError> {
+    let (t_2, f_2) = oob!(list.get(index));
+    let (t_3, f_3) = oob!(list.get(index + 1));
 
-    Some((
+    Ok((
         T::new(t_2.get()),
         (f_3.get() - f_2.get()) / (t_3.get() - t_2.get()),
     ))
@@ -102,7 +109,7 @@ pub fn forward_difference_derivative<T: Float, F: Float>(
 ///
 /// # Errors
 ///
-/// - Returns [`None`] if `index` or `index - 1` is out of bounds in `list`.
+/// - Returns [`OutOfBoundsIndexError`] if `index` or `index - 1` is out of bounds in `list`.
 /// - Returns [`f64::INFINITY`] as the derivative if `t` at `index` is equal to `t` at `index - 1`.
 ///
 /// # Units
@@ -123,7 +130,7 @@ pub fn forward_difference_derivative<T: Float, F: Float>(
 ///
 /// assert_eq!(
 ///     backward_difference_derivative(1, list),
-///     Some((1.0, derivative))
+///     Ok((1.0, derivative))
 /// );
 ///
 /// // Division by zero from overlapping values should return [`f64::INFINITY`]:
@@ -133,15 +140,14 @@ pub fn forward_difference_derivative<T: Float, F: Float>(
 /// assert_eq!(independent, 1.0);
 /// assert!(derivative.is_infinite());
 /// ```
-#[must_use]
 pub fn backward_difference_derivative<T: Float, F: Float>(
     index: usize,
     list: &[(T, F)],
-) -> Option<(T, f64)> {
-    let (t_1, f_1) = list.get(index.checked_sub(1)?)?;
-    let (t_2, f_2) = list.get(index)?;
+) -> Result<(T, f64), OutOfBoundsIndexError> {
+    let (t_1, f_1) = oob!(list.get(oob!(index.checked_sub(1))));
+    let (t_2, f_2) = oob!(list.get(index));
 
-    Some((
+    Ok((
         T::new(t_2.get()),
         (f_2.get() - f_1.get()) / (t_2.get() - t_1.get()),
     ))
@@ -159,7 +165,7 @@ pub fn backward_difference_derivative<T: Float, F: Float>(
 ///
 /// # Errors
 ///
-/// - Returns [`None`] if `index - 1` or `index + 1` is out of bounds in `list`.
+/// - Returns [`OutOfBoundsIndexError`] if `index - 1` or `index + 1` is out of bounds in `list`.
 /// - Returns [`f64::INFINITY`] as the derivative if `t` at `index - 1` is equal to `t` at
 ///   `index + 1`.
 ///
@@ -181,7 +187,7 @@ pub fn backward_difference_derivative<T: Float, F: Float>(
 ///
 /// assert_eq!(
 ///     central_difference_derivative(1, list),
-///     Some((1.0, derivative))
+///     Ok((1.0, derivative))
 /// );
 ///
 /// // Division by zero from overlapping values should return [`f64::INFINITY`]:
@@ -191,17 +197,16 @@ pub fn backward_difference_derivative<T: Float, F: Float>(
 /// assert_eq!(independent, 1.0);
 /// assert!(derivative.is_infinite());
 /// ```
-#[must_use]
 pub fn central_difference_derivative<T: Float, F: Float>(
     index: usize,
     list: &[(T, F)],
-) -> Option<(T, f64)> {
-    let (t_1, f_1) = list.get(index.checked_sub(1)?)?;
-    let (t_3, f_3) = list.get(index + 1)?;
+) -> Result<(T, f64), OutOfBoundsIndexError> {
+    let (t_1, f_1) = oob!(list.get(oob!(index.checked_sub(1))));
+    let (t_3, f_3) = oob!(list.get(index + 1));
 
-    let (t_2, _) = list.get(index)?;
+    let (t_2, _) = oob!(list.get(index));
 
-    Some((
+    Ok((
         T::new(t_2.get()),
         (f_3.get() - f_1.get()) / (t_3.get() - t_1.get()),
     ))
@@ -458,11 +463,11 @@ pub fn nth_order<T: Float, F: Float>(order: NonZeroU32, list: &[(T, F)]) -> Box<
 ///
 /// For details, see the Typst document `/docs/derivatives.typ`. It explains the math further and
 /// derives it. The math is based on William Leonard's article "Dangers of Automated Data
-/// Analysis," pub. _The Physics Teacher,_ vol. 35, April 1996, pp. 220-222.
+/// Analysis," pub. _The Physics Teacher,_ vol. 35, April 1996, pp. 220--222.
 ///
 /// # Errors
 ///
-/// - Returns [`None`] if `index - 1`, or `index + 1` is out of bounds in `list`.
+/// - Returns [`OutOfBoundsIndexError`] if `index - 1`, or `index + 1` is out of bounds in `list`.
 /// - Overlapping `T` values will return a [`f64::NAN`] as their derivative.
 ///
 /// # Units
@@ -485,7 +490,7 @@ pub fn nth_order<T: Float, F: Float>(order: NonZeroU32, list: &[(T, F)]) -> Box<
 ///
 /// assert_eq!(
 ///     derivative_time_shifted(1, list),
-///     Some((1.0, derivative))
+///     Ok((1.0, derivative))
 /// );
 ///
 /// // Overlapping values should cause NaN derivatives:
@@ -496,17 +501,16 @@ pub fn nth_order<T: Float, F: Float>(order: NonZeroU32, list: &[(T, F)]) -> Box<
 /// assert_eq!(independent, 1.0);
 /// assert!(derivative.is_nan());
 /// ```
-#[must_use]
 pub fn derivative_time_shifted<T: Float, F: Float>(
     index: usize,
     list: &[(T, F)],
-) -> Option<(T, f64)> {
+) -> Result<(T, f64), OutOfBoundsIndexError> {
     let get = |index: usize| {
-        let (t, f) = list.get(index)?;
-        Some((t.get(), f.get()))
+        let (t, f) = oob!(list.get(index));
+        Ok((t.get(), f.get()))
     };
 
-    let (independent_1, dependent_1) = get(index.checked_sub(1)?)?;
+    let (independent_1, dependent_1) = get(oob!(index.checked_sub(1)))?;
     let (independent_2, dependent_2) = get(index)?;
     let (independent_3, dependent_3) = get(index + 1)?;
 
@@ -520,7 +524,7 @@ pub fn derivative_time_shifted<T: Float, F: Float>(
 
     let delta_independent_13 = independent_3 - independent_1;
 
-    Some((
+    Ok((
         T::new(independent_2.get()),
         derivative_avg_12.mul_add(
             delta_independent_23,
@@ -539,7 +543,7 @@ pub fn derivative_time_shifted<T: Float, F: Float>(
 ///
 /// For details, see the Typst document `/docs/derivatives.typ`. It explains the math further and
 /// derives it. The math is based on William Leonard's article "Dangers of Automated Data
-/// Analysis," pub. _The Physics Teacher,_ vol. 35, April 1996, pp. 220-222.
+/// Analysis," pub. _The Physics Teacher,_ vol. 35, April 1996, pp. 220--222.
 ///
 /// # Errors
 ///
@@ -703,11 +707,11 @@ pub fn first_order_time_shifted<T: Float, F: Float>(list: &[(T, F)]) -> Box<[(T,
 ///
 /// For details, see the Typst document `/docs/derivatives.typ`. It explains the math further and
 /// derives it. The math is based on William Leonard's article "Dangers of Automated Data
-/// Analysis," pub. _The Physics Teacher,_ vol. 35, April 1996, pp. 220-222.
+/// Analysis," pub. _The Physics Teacher,_ vol. 35, April 1996, pp. 220--222.
 ///
 /// # Errors
 ///
-/// - Returns [`None`] if `index - 1` or `index + 1` is out of bounds in `list`.
+/// - Returns [`OutOfBoundsIndexError`] if `index - 1` or `index + 1` is out of bounds in `list`.
 /// - Overlapping `T` values will return a [`f64::NAN`] as their second derivative.
 ///
 /// # Units
@@ -733,7 +737,7 @@ pub fn first_order_time_shifted<T: Float, F: Float>(list: &[(T, F)]) -> Box<[(T,
 ///
 /// assert_eq!(
 ///     second_derivative_time_shifted(1, list),
-///     Some((1.0, derivative))
+///     Ok((1.0, derivative))
 /// );
 ///
 /// // Overlapping values should cause NaN derivatives:
@@ -744,17 +748,16 @@ pub fn first_order_time_shifted<T: Float, F: Float>(list: &[(T, F)]) -> Box<[(T,
 /// assert_eq!(independent, 1.0);
 /// assert!(derivative.is_nan());
 /// ```
-#[must_use]
 pub fn second_derivative_time_shifted<T: Float, F: Float>(
     index: usize,
     list: &[(T, F)],
-) -> Option<(T, f64)> {
+) -> Result<(T, f64), OutOfBoundsIndexError> {
     let get = |index: usize| {
-        let (t, f) = list.get(index)?;
-        Some((t.get(), f.get()))
+        let (t, f) = oob!(list.get(index));
+        Ok((t.get(), f.get()))
     };
 
-    let (independent_1, dependent_1) = get(index.checked_sub(1)?)?;
+    let (independent_1, dependent_1) = get(oob!(index.checked_sub(1)))?;
     let (independent_2, dependent_2) = get(index)?;
     let (independent_3, dependent_3) = get(index + 1)?;
 
@@ -763,7 +766,7 @@ pub fn second_derivative_time_shifted<T: Float, F: Float>(
 
     let delta_independent_13 = independent_3 - independent_1;
 
-    Some((
+    Ok((
         T::new(independent_2.get()),
         2.0 * (derivative_avg_23 - derivative_avg_12) / delta_independent_13,
     ))
@@ -781,7 +784,7 @@ pub fn second_derivative_time_shifted<T: Float, F: Float>(
 ///
 /// For details, see the Typst document `/docs/derivatives.typ`. It explains the math further and
 /// derives it. The math is based on William Leonard's article "Dangers of Automated Data
-/// Analysis," pub. _The Physics Teacher,_ vol. 35, April 1996, pp. 220-222.
+/// Analysis," pub. _The Physics Teacher,_ vol. 35, April 1996, pp. 220--222.
 ///
 /// # Errors
 ///

@@ -19,7 +19,7 @@ fn forward_difference() {
 
     assert_eq!(
         super::forward_difference_derivative(0, list),
-        Some((0.0, derivative))
+        Ok((0.0, derivative))
     );
 
     // Division by zero should return [`f64::INFINITY`].
@@ -36,7 +36,7 @@ fn backward_difference() {
 
     assert_eq!(
         super::backward_difference_derivative(1, list),
-        Some((1.0, derivative))
+        Ok((1.0, derivative))
     );
 
     // Division by zero should return [`f64::INFINITY`].
@@ -53,7 +53,7 @@ fn central_difference() {
 
     assert_eq!(
         super::central_difference_derivative(1, list),
-        Some((1.0, derivative))
+        Ok((1.0, derivative))
     );
 
     // Division by zero should return [`f64::INFINITY`].
@@ -73,7 +73,7 @@ fn time_shifted() {
 
     assert_eq!(
         super::derivative_time_shifted(1, list),
-        Some((1.0, derivative))
+        Ok((1.0, derivative))
     );
 
     // Overlapping values should cause NaN derivatives:
@@ -98,7 +98,7 @@ fn second_time_shifted() {
 
     assert_eq!(
         super::second_derivative_time_shifted(1, list),
-        Some((1.0, derivative))
+        Ok((1.0, derivative))
     );
 
     // Overlapping values should cause NaN derivatives:

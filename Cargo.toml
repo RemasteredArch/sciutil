@@ -14,6 +14,7 @@ default = []
 [dependencies]
 # Optionally derive `Serialize`/`Deserialize` on sciutil's types, enabled with `--features serde`.
 serde = { version = "1.0", features = ["derive"], optional = true }
+thiserror = "2.0.12"
 
 [dev-dependencies]
 # Used to verify the `Serialize`/`Deserialize` implementations of structs.

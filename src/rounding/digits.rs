@@ -11,10 +11,16 @@
 //! In particular, see [`Digits`], which holds the implementation details for
 //! [`super::round_with_uncertainty`].
 
+mod err;
+
 use std::{
     fmt::Display,
     num::{FpCategory, NonZeroIsize},
 };
+
+pub use err::{InvalidDigitsPartsError, OutOfBoundsPlaceError};
+
+use crate::err::{InvalidDigitError, InvalidFloatError};
 
 #[cfg(any(feature = "serde", test))]
 use serde::{Deserialize, Deserializer, Serialize};
@@ -64,18 +70,21 @@ impl Digit {
 
     /// Creates a new [`Self`], checking that it is valid.
     ///
+    /// # Errors
+    ///
+    /// Returns [`InvalidDigitError`] if `digit` is not between zero and nine.
+    ///
     /// # Examples
     ///
     /// ```rust
     /// # use sciutil::rounding::digits::Digit;
     /// #
-    /// assert_eq!(Digit::new(0), Some(Digit::Zero));
-    /// assert_eq!(Digit::new(9), Some(Digit::Nine));
-    /// assert!(Digit::new(10).is_none());
+    /// assert_eq!(Digit::new(0), Ok(Digit::Zero));
+    /// assert_eq!(Digit::new(9), Ok(Digit::Nine));
+    /// assert!(Digit::new(10).is_err());
     /// ```
-    #[must_use]
-    pub const fn new(digit: u8) -> Option<Self> {
-        Some(match digit {
+    pub const fn new(digit: u8) -> Result<Self, InvalidDigitError> {
+        Ok(match digit {
             0 => Self::Zero,
             1 => Self::One,
             2 => Self::Two,
@@ -86,7 +95,7 @@ impl Digit {
             7 => Self::Seven,
             8 => Self::Eight,
             9 => Self::Nine,
-            _ => return None,
+            _ => return Err(InvalidDigitError),
         })
     }
 
@@ -109,29 +118,31 @@ impl Digit {
 }
 
 impl TryFrom<u8> for Digit {
-    type Error = ();
+    type Error = InvalidDigitError;
 
     fn try_from(value: u8) -> Result<Self, Self::Error> {
-        Self::new(value).ok_or(())
+        Self::new(value)
     }
 }
 
 impl TryFrom<u32> for Digit {
-    type Error = ();
+    type Error = InvalidDigitError;
 
     fn try_from(digit: u32) -> Result<Self, Self::Error> {
-        u8::try_from(digit).map_err(|_| ())?.try_into()
+        u8::try_from(digit)
+            .map_err(|_| InvalidDigitError)?
+            .try_into()
     }
 }
 
 impl TryFrom<char> for Digit {
-    type Error = ();
+    type Error = InvalidDigitError;
 
     fn try_from(digit: char) -> Result<Self, Self::Error> {
-        // `to_digit(10)` will return a number from 0-9, so it is safe to cast to [`u8`] and
+        // `to_digit(10)` will return a number from 0--9, so it is safe to cast to [`u8`] and
         // blindly construct [`Self`] with unwrap.
         #[expect(clippy::cast_possible_truncation, reason = "see comment")]
-        Ok(Self::new(digit.to_digit(10).ok_or(())? as u8).unwrap())
+        Ok(Self::new(digit.to_digit(10).ok_or(InvalidDigitError)? as u8).unwrap())
     }
 }
 
@@ -399,25 +410,35 @@ impl Digits {
     /// Other guarantees may be added in the future without notice, consider this an experimental
     /// API.
     #[must_use]
-    pub const unsafe fn from_raw_parts(sign: Sign, dot: usize, digits: Box<[Digit]>) -> Self {
+    pub const unsafe fn from_parts_unchecked(sign: Sign, dot: usize, digits: Box<[Digit]>) -> Self {
         Self { sign, dot, digits }
     }
 
     /// Constructs a [`Self`] from its component parts.
     ///
+    /// # Errors
+    ///
+    /// - Returns [`InvalidDigitsPartsError::OutOfBoundsDot`] if `dot` is greater than
+    ///   `digits.len()`.
+    /// - Returns [`InvalidDigitsPartsError::EmptyDigitsList`] if `digits` is empty.
+    ///
+    /// Other guarantees may be added in the future without notice, consider this an experimental
+    /// API.
+    ///
     /// # Examples
     ///
     /// ```rust
-    /// # use sciutil::rounding::digits::{Digit, Digits, Sign};
+    /// # use sciutil::rounding::digits::{Digit, Digits, InvalidDigitsPartsError, Sign};
     /// #
-    /// # fn test() -> Option<()> {
+    /// # fn test() -> Result<(), InvalidDigitsPartsError> {
     /// let digits_0 =
     ///     Digits::from_parts(Sign::Positive, 1, [Digit::Zero].to_vec().into_boxed_slice())?;
     /// assert_eq!(digits_0.to_string(), "0".to_string());
     ///
     /// // `dot` cannot be more than one away from the last index.
     /// assert!(
-    ///     Digits::from_parts(Sign::Positive, 2, [Digit::Zero].to_vec().into_boxed_slice()).is_none()
+    ///     Digits::from_parts(Sign::Positive, 2, [Digit::Zero].to_vec().into_boxed_slice())
+    ///         .is_err()
     /// );
     ///
     /// let digits_102405 = Digits::from_parts(
@@ -436,21 +457,28 @@ impl Digits {
     /// )?;
     /// assert_eq!(digits_102405.to_string(), "-1024.05".to_string());
     /// #
-    /// #     Some(())
+    /// #     Ok(())
     /// # }
     /// #
-    /// # assert!(test().is_some());
+    /// # assert!(test().is_ok());
     /// ```
-    #[must_use]
-    pub fn from_parts(sign: Sign, dot: usize, digits: Box<[Digit]>) -> Option<Self> {
-        // TODO: should `dot` also be required to be greater than zero? Would there be any reason
-        // to allow someone to opt-out of the leading zero? Should I refactor this whole class to
-        // be based around `NonZeroUsize`?
-        if dot > digits.len() {
-            return None;
+    pub fn from_parts(
+        sign: Sign,
+        dot: usize,
+        digits: Box<[Digit]>,
+    ) -> Result<Self, InvalidDigitsPartsError> {
+        if digits.is_empty() {
+            return Err(InvalidDigitsPartsError::EmptyDigitsList);
         }
 
-        Some(Self { sign, dot, digits })
+        // TODO: should `dot` also be required to be greater than zero? Would there be any reason
+        // to allow someone to opt-out of the leading zero? Should I refactor this whole class to
+        // be based around [`NonZeroUsize`]?
+        if dot > digits.len() {
+            return Err(InvalidDigitsPartsError::OutOfBoundsDot);
+        }
+
+        Ok(Self { sign, dot, digits })
     }
 
     /// Converts [`Self`] into a [`SplitFloat`], splitting the digits on the left and right side of
@@ -899,13 +927,15 @@ impl Digits {
     /// Converts a generic [`Place`] (oriented around this [`Self`]'s dot) to a digit index
     /// (oriented around the list of digits, specific to this [`Self`]).
     ///
-    /// Returns [`None`] if the provided [`Place`] exists outside of the range of this [`Self`]'s
-    /// list of digits.
+    /// # Errors
+    ///
+    /// Returns [`OutOfBoundsPlaceError`] if the provided [`Place`] exists outside of the range of
+    /// this [`Self`]'s list of digits.
     ///
     /// # Examples
     ///
     /// ```rust
-    /// # use sciutil::rounding::digits::{Digits, Place};
+    /// # use sciutil::rounding::digits::{Digits, OutOfBoundsPlaceError, Place};
     /// #
     /// // ```txt
     /// // 0.015555312
@@ -913,7 +943,7 @@ impl Digits {
     /// // ```
     /// assert_eq!(
     ///     Digits::new(0.015555312).place_to_digit_index(Place::new(3).unwrap()),
-    ///     Some(3),
+    ///     Ok(3),
     /// );
     ///
     /// // ```txt
@@ -922,7 +952,7 @@ impl Digits {
     /// // ```
     /// assert_eq!(
     ///     Digits::new(0.015555312).place_to_digit_index(Place::new(1).unwrap()),
-    ///     Some(1),
+    ///     Ok(1),
     /// );
     ///
     /// // ```txt
@@ -931,7 +961,7 @@ impl Digits {
     /// // ```
     /// assert_eq!(
     ///     Digits::new(1024.05).place_to_digit_index(Place::new(-3).unwrap()),
-    ///     Some(1),
+    ///     Ok(1),
     /// );
     ///
     /// // ```txt
@@ -940,7 +970,7 @@ impl Digits {
     /// // ```
     /// assert_eq!(
     ///     Digits::new(1024.05).place_to_digit_index(Place::new(1).unwrap()),
-    ///     Some(4),
+    ///     Ok(4),
     /// );
     ///
     /// // ```txt
@@ -949,7 +979,7 @@ impl Digits {
     /// // ```
     /// assert_eq!(
     ///     Digits::new(1024.05).place_to_digit_index(Place::new(4).unwrap()),
-    ///     None,
+    ///     Err(OutOfBoundsPlaceError),
     /// );
     ///
     /// // ```txt
@@ -958,11 +988,10 @@ impl Digits {
     /// // ```
     /// assert_eq!(
     ///     Digits::new(1024.05).place_to_digit_index(Place::new(-6).unwrap()),
-    ///     None,
+    ///     Err(OutOfBoundsPlaceError),
     /// );
     /// ```
-    #[must_use]
-    pub fn place_to_digit_index(&self, place: Place) -> Option<usize> {
+    pub fn place_to_digit_index(&self, place: Place) -> Result<usize, OutOfBoundsPlaceError> {
         // Zero represents the dot for [`Place`] values, but the digit after the dot for digit
         // indices. This accounts for that difference.
         let offset = if place.is_positive() {
@@ -971,13 +1000,15 @@ impl Digits {
             place.get()
         };
 
-        self.dot.checked_add_signed(offset).and_then(|dot| {
-            if dot < self.digits.len() {
-                Some(dot)
-            } else {
-                None
-            }
-        })
+        self.dot
+            .checked_add_signed(offset)
+            .map_or(Err(OutOfBoundsPlaceError), |dot| {
+                if dot < self.digits.len() {
+                    Ok(dot)
+                } else {
+                    Err(OutOfBoundsPlaceError)
+                }
+            })
     }
 }
 
@@ -992,7 +1023,7 @@ impl Default for Digits {
 }
 
 impl TryFrom<f64> for Digits {
-    type Error = ();
+    type Error = InvalidFloatError;
 
     /// Converts an [`f64`] to base-ten decimal number and parses it into a [`Self`].
     ///
@@ -1002,8 +1033,10 @@ impl TryFrom<f64> for Digits {
     ///
     /// Returns [`Self::Error`] if `value` is [`FpCategory::Nan`] or [`FpCategory::Infinite`].
     fn try_from(value: f64) -> Result<Self, Self::Error> {
-        if matches!(value.classify(), FpCategory::Nan | FpCategory::Infinite) {
-            return Err(());
+        match value.classify() {
+            FpCategory::Nan => return Err(InvalidFloatError::Nan),
+            FpCategory::Infinite => return Err(InvalidFloatError::Infinite),
+            _ => (),
         }
 
         let str = value.to_string();

@@ -8,6 +8,8 @@
 
 use serde::{Deserialize, Serialize};
 
+use crate::err::InvalidDigitError;
+
 use super::digits::{Digit, DigitSlice, Digits, Sign};
 
 macro_rules! digit {
@@ -45,7 +47,7 @@ macro_rules! digit_box {
 
 macro_rules! digits {
     ($sign:ident, $dot:expr, [$($digits:expr),+]) => {
-        unsafe { Digits::from_raw_parts(Sign::$sign, $dot, digit_box![$($digits),+]) }
+        unsafe { Digits::from_parts_unchecked(Sign::$sign, $dot, digit_box![$($digits),+]) }
     };
 }
 
@@ -106,6 +108,16 @@ fn to_digits() {
     let digits_zero = digits!(Positive, 1, [0]);
     let digits_neg_zero = digits!(Negative, 1, [0]);
     let digits_point_one_three = digits!(Positive, 1, [0, 0, 3]);
+    // `1.0e-308_f64` formats to `0. <307 zeros> 1`. This is a subnormal value.
+    //
+    // Safety: `digits` has at least one digit and `1` is less than or equal to that length.
+    let digits_point_307_zeros_one = unsafe {
+        Digits::from_parts_unchecked(Sign::Positive, 1, {
+            let mut digits = [Digit::Zero].repeat(1 + 307);
+            digits.push(Digit::One);
+            digits.into_boxed_slice()
+        })
+    };
 
     assert_eq!(Digits::new(1024.0).to_string(), "1024");
     assert_eq!(Digits::new(1024.0), digits_1024);
@@ -113,6 +125,7 @@ fn to_digits() {
     assert_eq!(Digits::new(0.0), digits_zero);
     assert_eq!(Digits::new(-0.0), digits_neg_zero);
     assert_eq!(Digits::new(0.03), digits_point_one_three);
+    assert_eq!(Digits::new(1.0e-308), digits_point_307_zeros_one);
 }
 
 #[test]
@@ -128,11 +141,25 @@ fn digits_to_string() {
     for (digits, expected) in tests {
         assert_eq!(digits.to_string(), expected);
     }
+
+    assert_eq!(
+        // This is a subnormal value.
+        //
+        // In the interest of brevity, I'm using [`Digits::try_from`] instead of a hardcoded
+        // [`Digits`]. That [`Digits::try_from`] returns the expected [`Digits`] is tested in
+        // [`self::to_digits`].
+        Digits::try_from(1.0e-308_f64).map(|d| d.to_string()),
+        Ok(String::new()
+            + "0.0000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+            + "000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+            + "000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+            + "0000000000000000000000000000000000000000000000000000000001")
+    );
 }
 
 #[test]
 fn last_sigificant_digit() {
-    // rounding::round_with_uncertainty(1024.05, 0.015555312, "g")
+    // `rounding::round_with_uncertainty(1024.05, 0.015555312, "g")`
     let digits_1024 = digits!(Positive, 4, [1, 0, 2, 4, 0, 5]);
     let digits_001 = digits!(Positive, 1, [0, 0, 1, 5, 5, 5, 5, 3, 1, 2]);
 
@@ -247,7 +274,7 @@ fn digit_conversion() {
         };
 
         (@ $from:expr, Err) => {
-            assert_eq!(Digit::try_from($from), Err(()))
+            assert_eq!(Digit::try_from($from), Err(InvalidDigitError));
         };
 
         (@ $from:expr, $digit:ident) => {
