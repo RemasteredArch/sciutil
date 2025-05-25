@@ -52,8 +52,8 @@ use crate::units::{Float, UncertainFloat};
 pub fn round_with_uncertainty<F: Float>(with_uncertainty: &UncertainFloat<F>) -> String {
     let unit = F::SYMBOL.map_or(String::new(), |u| format!(" {u}"));
 
-    let value = Digits::new(with_uncertainty.value().get());
-    let uncertainty = Digits::new(with_uncertainty.uncertainty().get());
+    let value = Digits::<F>::new(with_uncertainty.value());
+    let uncertainty = Digits::<F>::new(with_uncertainty.uncertainty());
 
     let last_place = uncertainty.last_significant_place();
     let uncertainty = uncertainty.round_to_place(last_place);

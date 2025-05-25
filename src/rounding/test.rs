@@ -8,7 +8,10 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::err::InvalidDigitError;
+use crate::{
+    err::InvalidDigitError,
+    units::{Float, Seconds},
+};
 
 use super::digits::{Digit, DigitSlice, Digits, Sign};
 
@@ -47,7 +50,7 @@ macro_rules! digit_box {
 
 macro_rules! digits {
     ($sign:ident, $dot:expr, [$($digits:expr),+]) => {
-        unsafe { Digits::from_parts_unchecked(Sign::$sign, $dot, digit_box![$($digits),+]) }
+        unsafe { Digits::<f64>::from_parts_unchecked(Sign::$sign, $dot, digit_box![$($digits),+]) }
     };
 }
 
@@ -103,6 +106,7 @@ fn to_from_digit_slice() {
 
 #[test]
 fn to_digits() {
+    let digits_1 = digits!(Positive, 1, [1]);
     let digits_1024 = digits!(Positive, 4, [1, 0, 2, 4]);
     let digits_102405 = digits!(Positive, 4, [1, 0, 2, 4, 0, 5]);
     let digits_zero = digits!(Positive, 1, [0]);
@@ -119,18 +123,20 @@ fn to_digits() {
         })
     };
 
-    assert_eq!(Digits::new(1024.0).to_string(), "1024");
-    assert_eq!(Digits::new(1024.0), digits_1024);
-    assert_eq!(Digits::new(1024.05), digits_102405);
-    assert_eq!(Digits::new(0.0), digits_zero);
-    assert_eq!(Digits::new(-0.0), digits_neg_zero);
-    assert_eq!(Digits::new(0.03), digits_point_one_three);
-    assert_eq!(Digits::new(1.0e-308), digits_point_307_zeros_one);
+    assert_eq!(Digits::<f64>::new(&1.0), digits_1);
+    assert_eq!(Digits::<f64>::new(&1024.0).to_string(), "1024");
+    assert_eq!(Digits::<f64>::new(&1024.0), digits_1024);
+    assert_eq!(Digits::<f64>::new(&1024.05), digits_102405);
+    assert_eq!(Digits::<f64>::new(&0.0), digits_zero);
+    assert_eq!(Digits::<f64>::new(&-0.0), digits_neg_zero);
+    assert_eq!(Digits::<f64>::new(&0.03), digits_point_one_three);
+    assert_eq!(Digits::<f64>::new(&1.0e-308), digits_point_307_zeros_one);
 }
 
 #[test]
 fn digits_to_string() {
     let tests = [
+        (digits!(Positive, 1, [1]), "1"),
         (digits!(Positive, 4, [1, 0, 2, 4, 0, 5]), "1024.05"),
         (digits!(Positive, 4, [1, 0, 2, 4]), "1024"),
         (digits!(Positive, 1, [0]), "0"),
@@ -148,7 +154,7 @@ fn digits_to_string() {
         // In the interest of brevity, I'm using [`Digits::try_from`] instead of a hardcoded
         // [`Digits`]. That [`Digits::try_from`] returns the expected [`Digits`] is tested in
         // [`self::to_digits`].
-        Digits::try_from(1.0e-308_f64).map(|d| d.to_string()),
+        Digits::<f64>::try_from(1.0e-308_f64).map(|d| d.to_string()),
         Ok(String::new()
             + "0.0000000000000000000000000000000000000000000000000000000000000000000000000000000000"
             + "000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
@@ -411,13 +417,13 @@ where
 fn digits_de_re_serialize() {
     serialize_and_deserialize(
         &mut String::new(),
-        &Digits::new(15.0),
+        &Digits::<f64>::new(&15.0),
         r#"{"sign":"Positive","dot":2,"digits":["One","Five"]}"#,
     );
 
     serialize_and_deserialize(
         &mut String::new(),
-        &Digits::new(-0.0),
+        &Digits::<Seconds>::new(&Seconds::new(-0.0)),
         r#"{"sign":"Negative","dot":1,"digits":["Zero"]}"#,
     );
 }

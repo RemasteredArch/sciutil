@@ -83,6 +83,17 @@ impl Float for f64 {
     }
 }
 
+pub trait FloatDisplay: Float + Display {
+    #[must_use]
+    fn symbol() -> String;
+
+    #[must_use]
+    fn name_single() -> String;
+
+    #[must_use]
+    fn name_plural() -> String;
+}
+
 /// Represents a value with an associated absolute uncertainty.
 ///
 /// # Examples
@@ -99,6 +110,7 @@ impl Float for f64 {
 pub struct UncertainFloat<F: Float> {
     /// The measured value.
     value: F,
+
     /// The absolute uncertainty in that value.
     uncertainty: F,
 }
@@ -132,6 +144,18 @@ impl<F: Float> UncertainFloat<F> {
     #[must_use]
     pub fn max(&self) -> F {
         F::new(self.value.get() + self.uncertainty.get().abs())
+    }
+}
+
+impl<F: FloatDisplay> Display for UncertainFloat<F> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{} {2} ± {} {2}",
+            self.value(),
+            self.uncertainty(),
+            F::symbol(),
+        )
     }
 }
 
@@ -270,6 +294,20 @@ impl<T: Float, F: Float, const P: usize> From<f64> for Per<F, T, P> {
 impl<T: Float, F: Float, const P: usize> From<Per<F, T, P>> for f64 {
     fn from(value: Per<F, T, P>) -> Self {
         value.get()
+    }
+}
+
+impl<F: FloatDisplay, T: FloatDisplay, const P: usize> FloatDisplay for Per<F, T, P> {
+    fn symbol() -> String {
+        todo!()
+    }
+
+    fn name_single() -> String {
+        todo!()
+    }
+
+    fn name_plural() -> String {
+        todo!()
     }
 }
 

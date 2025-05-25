@@ -14,14 +14,17 @@
 mod defs;
 mod err;
 
-use std::{fmt::Display, num::FpCategory};
+use std::{cmp::Ordering, fmt::Display, marker::PhantomData, num::FpCategory};
 
 // Everything that isn't [`Digits`] is kept out of this file to keep it from being too long, but
 // needs to be publicly reexported to keep the API flat.
 pub use defs::*;
 pub use err::*;
 
-use crate::err::InvalidFloatError;
+use crate::{
+    err::InvalidFloatError,
+    units::{Float, FloatDisplay},
+};
 
 #[cfg(any(feature = "serde", test))]
 use serde::{Deserialize, Deserializer, Serialize};
@@ -35,12 +38,14 @@ use serde::{Deserialize, Deserializer, Serialize};
 ///     ^
 ///     | `dot = 3`
 /// ```
+// I probably have to implement [`Deserialize`] and [`Serialize`] myself, as with the rest of the
+// traits I used to `derive` on [`Digits`].
 #[cfg_attr(any(feature = "serde", test), derive(Deserialize, Serialize))]
 #[cfg_attr(any(feature = "serde", test), serde(remote = "Self"))]
-#[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
-pub struct Digits {
+pub struct Digits<F: Float> {
     /// The sign of the number represented by [`Self`].
     sign: Sign,
+
     /// The digit index that the dot is placed before.
     ///
     /// - For `0.05`, `dot = 1`.
@@ -48,18 +53,23 @@ pub struct Digits {
     /// - For `100`, `dot = 3`.
     /// - For `100.2`, `dot = 3`.
     dot: usize,
+
     /// The list of digits contained by a number.
     ///
     /// - For `105.2060`, `digits = [1, 0, 5, 2, 0, 6, 0]`.
     #[expect(clippy::struct_field_names, reason = "this is the core of the struct")]
     digits: Box<[Digit]>,
+
+    /// Hold onto the type of the original [`Float`].
+    #[cfg_attr(any(feature = "serde", test), serde(skip))]
+    phantom: PhantomData<F>,
 }
 
 // The hack that makes the below `Deserialize` implementation work (the `serde(remote = "Self")`)
 // also disables the derived `Serialized` implementation from being applied properly, so we just
 // have to make a quick wrapper implementation.
 #[cfg(any(feature = "serde", test))]
-impl Serialize for Digits {
+impl<F: Float> Serialize for Digits<F> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
@@ -69,7 +79,7 @@ impl Serialize for Digits {
 }
 
 #[cfg(any(feature = "serde", test))]
-impl<'de> Deserialize<'de> for Digits {
+impl<'de, F: Float> Deserialize<'de> for Digits<F> {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
@@ -95,7 +105,7 @@ impl<'de> Deserialize<'de> for Digits {
     }
 }
 
-impl Digits {
+impl<F: Float> Digits<F> {
     /// Parses a floating-point value into a [`Self`].
     ///
     /// # Panics
@@ -107,13 +117,16 @@ impl Digits {
     /// Working as expected:
     ///
     /// ```rust
-    /// # use sciutil::rounding::digits::Digits;
+    /// # use sciutil::{
+    /// #     rounding::digits::Digits,
+    /// #     units::{Float, FloatDisplay, Seconds},
+    /// # };
     /// #
-    /// assert_eq!(Digits::new(1024.0).to_string(), "1024");
-    /// assert_eq!(Digits::new(1024.05).to_string(), "1024.05");
-    /// assert_eq!(Digits::new(0.0).to_string(), "0");
-    /// assert_eq!(Digits::new(-0.0).to_string(), "-0");
-    /// assert_eq!(Digits::new(0.03).to_string(), "0.03");
+    /// assert_eq!(Digits::<f64>::new(&1024.0).to_string(), "1024");
+    /// assert_eq!(Digits::<Seconds>::new(&Seconds::new(1024.05)).to_string_with_units(), "1024.05 s");
+    /// assert_eq!(Digits::<f64>::new(&0.0).to_string(), "0");
+    /// assert_eq!(Digits::<f64>::new(&-0.0).to_string(), "-0");
+    /// assert_eq!(Digits::<f64>::new(&0.03).to_string(), "0.03");
     /// ```
     ///
     /// NaN values cause panics:
@@ -121,7 +134,7 @@ impl Digits {
     /// ```should_panic
     /// # use sciutil::rounding::digits::Digits;
     /// #
-    /// let nan = Digits::new(f64::NAN);
+    /// let nan = Digits::<f64>::new(&f64::NAN);
     /// ```
     ///
     /// Infinite values cause panics:
@@ -129,11 +142,11 @@ impl Digits {
     /// ```should_panic
     /// # use sciutil::rounding::digits::Digits;
     /// #
-    /// let inf = Digits::new(f64::INFINITY);
+    /// let inf = Digits::<f64>::new(&f64::INFINITY);
     /// ```
     #[must_use]
-    pub fn new(value: f64) -> Self {
-        value
+    pub fn new(value: &F) -> Self {
+        (value.get())
             .try_into()
             .expect("received invalid floating-point number")
     }
@@ -147,7 +160,12 @@ impl Digits {
     /// API.
     #[must_use]
     pub const unsafe fn from_parts_unchecked(sign: Sign, dot: usize, digits: Box<[Digit]>) -> Self {
-        Self { sign, dot, digits }
+        Self {
+            sign,
+            dot,
+            digits,
+            phantom: PhantomData,
+        }
     }
 
     /// Constructs a [`Self`] from its component parts.
@@ -167,17 +185,20 @@ impl Digits {
     /// # use sciutil::rounding::digits::{Digit, Digits, InvalidDigitsPartsError, Sign};
     /// #
     /// # fn test() -> Result<(), InvalidDigitsPartsError> {
-    /// let digits_0 =
-    ///     Digits::from_parts(Sign::Positive, 1, [Digit::Zero].to_vec().into_boxed_slice())?;
+    /// let digits_0 = Digits::<f64>::from_parts(
+    ///     Sign::Positive,
+    ///     1,
+    ///     [Digit::Zero].to_vec().into_boxed_slice()
+    /// )?;
     /// assert_eq!(digits_0.to_string(), "0".to_string());
     ///
     /// // `dot` cannot be more than one away from the last index.
     /// assert!(
-    ///     Digits::from_parts(Sign::Positive, 2, [Digit::Zero].to_vec().into_boxed_slice())
+    ///     Digits::<f64>::from_parts(Sign::Positive, 2, [Digit::Zero].to_vec().into_boxed_slice())
     ///         .is_err()
     /// );
     ///
-    /// let digits_102405 = Digits::from_parts(
+    /// let digits_102405 = Digits::<f64>::from_parts(
     ///     Sign::Negative,
     ///     4,
     ///     [
@@ -214,7 +235,12 @@ impl Digits {
             return Err(InvalidDigitsPartsError::OutOfBoundsDot);
         }
 
-        Ok(Self { sign, dot, digits })
+        Ok(Self {
+            sign,
+            dot,
+            digits,
+            phantom: PhantomData,
+        })
     }
 
     /// Converts [`Self`] into a [`SplitFloat`], splitting the digits on the left and right side of
@@ -225,7 +251,7 @@ impl Digits {
     /// ```rust
     /// # use sciutil::rounding::digits::{Digit, Digits, Sign};
     /// #
-    /// let (sign, lhs, rhs) = Digits::new(1024.05).to_split();
+    /// let (sign, lhs, rhs) = Digits::<f64>::new(&1024.05).to_split();
     ///
     /// assert_eq!(sign, Sign::Positive);
     /// assert_eq!(
@@ -244,6 +270,16 @@ impl Digits {
         (self.sign, lhs, rhs)
     }
 
+    #[must_use]
+    pub const fn is_one(&self) -> bool {
+        self.dot == 1
+            && self.digits.len() == 1
+            && match self.digits.first() {
+                Some(d) => matches!(*d, Digit::One),
+                None => false,
+            }
+    }
+
     /// Returns the digit index of the last significant digit in [`Self`] when rounding to one or
     /// two significant figures.
     ///
@@ -260,13 +296,13 @@ impl Digits {
     /// // 1024.05
     /// // -^
     /// // ```
-    /// assert_eq!(Digits::new(1024.05).last_significant_digit(), 1);
+    /// assert_eq!(Digits::<f64>::new(&1024.05).last_significant_digit(), 1);
     ///
     /// // ```txt
     /// // 42
     /// // ^
     /// // ```
-    /// assert_eq!(Digits::new(42.0).last_significant_digit(), 0);
+    /// assert_eq!(Digits::<f64>::new(&42.0).last_significant_digit(), 0);
     /// ```
     #[must_use]
     pub fn last_significant_digit(&self) -> usize {
@@ -302,13 +338,13 @@ impl Digits {
     /// // 1024.05
     /// //  ^--
     /// // ```
-    /// assert_eq!(Digits::new(1024.05).last_significant_place().get(), -3);
+    /// assert_eq!(Digits::<f64>::new(&1024.05).last_significant_place().get(), -3);
     ///
     /// // ```txt
     /// // 42
     /// // ^-
     /// // ```
-    /// assert_eq!(Digits::new(42.0).last_significant_place().get(), -2);
+    /// assert_eq!(Digits::<f64>::new(&42.0).last_significant_place().get(), -2);
     /// ```
     #[must_use]
     pub fn last_significant_place(&self) -> Place {
@@ -345,7 +381,7 @@ impl Digits {
     /// // 0.016
     /// // ```
     /// assert_eq!(
-    ///     Digits::new(0.015555312).round_to_digit(3).to_string(),
+    ///     Digits::<f64>::new(&0.015555312).round_to_digit(3).to_string(),
     ///     "0.016",
     /// );
     ///
@@ -355,7 +391,7 @@ impl Digits {
     /// // 0.0
     /// // ```
     /// assert_eq!(
-    ///     Digits::new(0.015555312).round_to_digit(1).to_string(),
+    ///     Digits::<f64>::new(&0.015555312).round_to_digit(1).to_string(),
     ///     "0.0",
     /// );
     ///
@@ -365,7 +401,7 @@ impl Digits {
     /// // 1000
     /// // ```
     /// assert_eq!(
-    ///     Digits::new(1024.05).round_to_digit(1).to_string(),
+    ///     Digits::<f64>::new(&1024.05).round_to_digit(1).to_string(),
     ///     "1000",
     /// );
     ///
@@ -375,7 +411,7 @@ impl Digits {
     /// // 1024.0
     /// // ```
     /// assert_eq!(
-    ///     Digits::new(1024.05).round_to_digit(4).to_string(),
+    ///     Digits::<f64>::new(&1024.05).round_to_digit(4).to_string(),
     ///     "1024.0",
     /// );
     /// ```
@@ -468,6 +504,7 @@ impl Digits {
             sign: self.sign, // Is this always true?
             digits,
             dot,
+            phantom: PhantomData,
         }
     }
 
@@ -494,7 +531,7 @@ impl Digits {
     /// // 0.016
     /// // ```
     /// assert_eq!(
-    ///     Digits::new(0.015555312).round_to_place(Place::new(3).unwrap()).to_string(),
+    ///     Digits::<f64>::new(&0.015555312).round_to_place(Place::new(3).unwrap()).to_string(),
     ///     "0.016",
     /// );
     ///
@@ -504,7 +541,7 @@ impl Digits {
     /// // 0.0
     /// // ```
     /// assert_eq!(
-    ///     Digits::new(0.015555312).round_to_place(Place::new(1).unwrap()).to_string(),
+    ///     Digits::<f64>::new(&0.015555312).round_to_place(Place::new(1).unwrap()).to_string(),
     ///     "0.0",
     /// );
     ///
@@ -514,7 +551,7 @@ impl Digits {
     /// // 1000
     /// // ```
     /// assert_eq!(
-    ///     Digits::new(1024.05).round_to_place(Place::new(-3).unwrap()).to_string(),
+    ///     Digits::<f64>::new(&1024.05).round_to_place(Place::new(-3).unwrap()).to_string(),
     ///     "1000",
     /// );
     ///
@@ -524,7 +561,7 @@ impl Digits {
     /// // 1024.0
     /// // ```
     /// assert_eq!(
-    ///     Digits::new(1024.05).round_to_place(Place::new(1).unwrap()).to_string(),
+    ///     Digits::<f64>::new(&1024.05).round_to_place(Place::new(1).unwrap()).to_string(),
     ///     "1024.0",
     /// );
     /// ```
@@ -563,6 +600,7 @@ impl Digits {
                     sign: self.sign,
                     dot: self.dot + 1,
                     digits: rounded_up.into_boxed_slice(),
+                    phantom: PhantomData,
                 };
             }
 
@@ -600,7 +638,7 @@ impl Digits {
     /// //     ^
     /// // ```
     /// assert_eq!(
-    ///     Digits::new(0.015555312).digit_index_to_place(3),
+    ///     Digits::<f64>::new(&0.015555312).digit_index_to_place(3),
     ///     Place::new(3).unwrap(),
     /// );
     ///
@@ -609,7 +647,7 @@ impl Digits {
     /// //   ^
     /// // ```
     /// assert_eq!(
-    ///     Digits::new(0.015555312).digit_index_to_place(1),
+    ///     Digits::<f64>::new(&0.015555312).digit_index_to_place(1),
     ///     Place::new(1).unwrap(),
     /// );
     ///
@@ -618,7 +656,7 @@ impl Digits {
     /// //  ^
     /// // ```
     /// assert_eq!(
-    ///     Digits::new(1024.05).digit_index_to_place(1),
+    ///     Digits::<f64>::new(&1024.05).digit_index_to_place(1),
     ///     Place::new(-3).unwrap(),
     /// );
     ///
@@ -627,7 +665,7 @@ impl Digits {
     /// //      ^
     /// // ```
     /// assert_eq!(
-    ///     Digits::new(1024.05).digit_index_to_place(4),
+    ///     Digits::<f64>::new(&1024.05).digit_index_to_place(4),
     ///     Place::new(1).unwrap(),
     /// );
     ///
@@ -636,7 +674,7 @@ impl Digits {
     /// //         ^
     /// // ```
     /// assert_eq!(
-    ///     Digits::new(1024.05).digit_index_to_place(7),
+    ///     Digits::<f64>::new(&1024.05).digit_index_to_place(7),
     ///     Place::new(4).unwrap(),
     /// );
     /// ```
@@ -678,7 +716,7 @@ impl Digits {
     /// //     ^
     /// // ```
     /// assert_eq!(
-    ///     Digits::new(0.015555312).place_to_digit_index(Place::new(3).unwrap()),
+    ///     Digits::<f64>::new(&0.015555312).place_to_digit_index(Place::new(3).unwrap()),
     ///     Ok(3),
     /// );
     ///
@@ -687,7 +725,7 @@ impl Digits {
     /// //   ^
     /// // ```
     /// assert_eq!(
-    ///     Digits::new(0.015555312).place_to_digit_index(Place::new(1).unwrap()),
+    ///     Digits::<f64>::new(&0.015555312).place_to_digit_index(Place::new(1).unwrap()),
     ///     Ok(1),
     /// );
     ///
@@ -696,7 +734,7 @@ impl Digits {
     /// //  ^
     /// // ```
     /// assert_eq!(
-    ///     Digits::new(1024.05).place_to_digit_index(Place::new(-3).unwrap()),
+    ///     Digits::<f64>::new(&1024.05).place_to_digit_index(Place::new(-3).unwrap()),
     ///     Ok(1),
     /// );
     ///
@@ -705,7 +743,7 @@ impl Digits {
     /// //      ^
     /// // ```
     /// assert_eq!(
-    ///     Digits::new(1024.05).place_to_digit_index(Place::new(1).unwrap()),
+    ///     Digits::<f64>::new(&1024.05).place_to_digit_index(Place::new(1).unwrap()),
     ///     Ok(4),
     /// );
     ///
@@ -714,7 +752,7 @@ impl Digits {
     /// //         ^
     /// // ```
     /// assert_eq!(
-    ///     Digits::new(1024.05).place_to_digit_index(Place::new(4).unwrap()),
+    ///     Digits::<f64>::new(&1024.05).place_to_digit_index(Place::new(4).unwrap()),
     ///     Err(OutOfBoundsPlaceError),
     /// );
     ///
@@ -723,7 +761,7 @@ impl Digits {
     /// // ^
     /// // ```
     /// assert_eq!(
-    ///     Digits::new(1024.05).place_to_digit_index(Place::new(-6).unwrap()),
+    ///     Digits::<f64>::new(&1024.05).place_to_digit_index(Place::new(-6).unwrap()),
     ///     Err(OutOfBoundsPlaceError),
     /// );
     /// ```
@@ -746,28 +784,53 @@ impl Digits {
                 }
             })
     }
-}
 
-impl Default for Digits {
-    fn default() -> Self {
-        Self {
-            sign: Sign::Positive,
-            dot: 0,
-            digits: [Digit::Zero].to_vec().into_boxed_slice(),
+    /// Cast [`Self`] to a [`Digit<T>`] of some other [`Float`] `T`.
+    ///
+    /// ```rust
+    /// # use sciutil::{
+    /// #     rounding::digits::Digits,
+    /// #     units::{Float, FloatDisplay, Seconds},
+    /// # };
+    /// #
+    /// let a: Digits<f64> = Digits::<f64>::new(&123.0);
+    /// let b: Digits<Seconds> = a.cast();
+    ///
+    /// assert_eq!(b.to_string_with_units(), "123 s");
+    /// ```
+    #[must_use]
+    pub fn cast<T: Float>(self) -> Digits<T> {
+        let Self {
+            sign, dot, digits, ..
+        } = self;
+
+        Digits::<T> {
+            sign,
+            dot,
+            digits,
+            phantom: PhantomData,
         }
     }
 }
 
-impl TryFrom<f64> for Digits {
+impl<F: Float> TryFrom<f64> for Digits<F> {
     type Error = InvalidFloatError;
 
     /// Converts an [`f64`] to base-ten decimal number and parses it into a [`Self`].
+    ///
+    /// This has to be `impl<F: Float> TryFrom<f64> for Digits<F>` instead of
+    /// `impl<F: Float> TryFrom<F> for Digits<F>` because downstream types that implement [`Float`]
+    /// may also implement [`Into<Digits>`], which would create a conflicting implementation of
+    /// [`TryInto<Digits>`] through [`core`]'s blanket implementation of [`TryInto`] for any type
+    /// that implements [`Into`]. This would be fixed by [specialization][rust#31844].
     ///
     /// See also [`Digits::new`].
     ///
     /// # Errors
     ///
     /// Returns [`Self::Error`] if `value` is [`FpCategory::Nan`] or [`FpCategory::Infinite`].
+    ///
+    /// [rust#31844]: <https://github.com/rust-lang/rust/issues/31844>
     fn try_from(value: f64) -> Result<Self, Self::Error> {
         match value.classify() {
             FpCategory::Nan => return Err(InvalidFloatError::Nan),
@@ -797,11 +860,12 @@ impl TryFrom<f64> for Digits {
             sign,
             dot: dot.unwrap_or(digits.len()),
             digits: digits.into_boxed_slice(),
+            phantom: PhantomData,
         })
     }
 }
 
-impl Display for Digits {
+impl<F: Float> Display for Digits<F> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut str = String::with_capacity(self.digits.len());
 
@@ -810,7 +874,10 @@ impl Display for Digits {
         }
 
         // Print zero as `"0"`, not `".0"`.
-        if self.digits.len() == 1 && self.digits[0] == Digit::Zero && self.dot == 0 {
+        if self.digits.len() == 1 && self.digits[0] == Digit::Zero &&
+            // Should this be zero or one?
+            self.dot == 0
+        {
             str.push('0');
             return write!(f, "{str}");
         }
@@ -824,5 +891,92 @@ impl Display for Digits {
         }
 
         write!(f, "{str}")
+    }
+}
+
+impl<F: FloatDisplay> Digits<F> {
+    #[must_use]
+    pub fn to_string_with_units(&self) -> String {
+        let mut str = self.to_string();
+        str.push(' ');
+        str.push_str(&F::symbol());
+        str
+    }
+}
+
+// The following implementations are manual implementations of commonly derived traits.
+//
+// `#[derive(...)]` will not derive a trait if one of its generics doesn't implement it. We want to
+// implement this traits anyways because [`Digits<F>`] doesn't actually store any instances of `F`.
+// Unfortunately, that means we have to implement these traits ourselves.
+
+impl<F: Float> Clone for Digits<F> {
+    fn clone(&self) -> Self {
+        Self {
+            sign: self.sign,
+            dot: self.dot,
+            digits: self.digits.clone(),
+            phantom: PhantomData,
+        }
+    }
+}
+
+impl<F: Float> Default for Digits<F> {
+    fn default() -> Self {
+        Self {
+            sign: Sign::Positive,
+            // Should this be zero or one?
+            dot: 0,
+            digits: [Digit::Zero].to_vec().into_boxed_slice(),
+            phantom: PhantomData,
+        }
+    }
+}
+
+impl<F: Float> Eq for Digits<F> {}
+
+impl<F: Float> PartialEq for Digits<F> {
+    fn eq(&self, other: &Self) -> bool {
+        self.sign == other.sign && self.dot == other.dot && self.digits == other.digits
+    }
+}
+
+impl<F: Float> Ord for Digits<F> {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        let cmp = self.sign.cmp(&other.sign);
+        if cmp != Ordering::Equal {
+            return cmp;
+        }
+        let cmp = self.dot.cmp(&other.dot);
+        if cmp != Ordering::Equal {
+            return cmp;
+        }
+        self.digits.cmp(&other.digits)
+    }
+}
+
+impl<F: Float> PartialOrd for Digits<F> {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl<F: Float> std::hash::Hash for Digits<F> {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.sign.hash(state);
+        self.dot.hash(state);
+        self.digits.hash(state);
+        self.phantom.hash(state);
+    }
+}
+
+impl<F: Float> std::fmt::Debug for Digits<F> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Digits")
+            .field("sign", &self.sign)
+            .field("dot", &self.dot)
+            .field("digits", &self.digits)
+            .field("phantom", &self.phantom)
+            .finish()
     }
 }
