@@ -324,7 +324,7 @@ float_types![
 
 conversions![
     (Seconds * 60.0 = Minutes * 60.0 = Hours * 24.0 = Days),
-    (Meters * 100.0 = Centimeters * 10.0 = Millimeters * (1.0 / 1_000.0) = Micrometers),
+    (Meters * 100.0 = Centimeters * 10.0 = Millimeters * 1_000.0 = Micrometers),
     // These should really be gotten for free from the above two lines, but doing it manually works
     // for now.
     (Seconds * (Seconds::TO_MINUTES * Minutes::TO_HOURS) = Hours),
