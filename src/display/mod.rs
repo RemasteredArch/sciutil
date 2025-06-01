@@ -8,6 +8,8 @@
 
 //! `display`: Miscellaneous facilities for pretty-printing things.
 
+use crate::units::Float;
+
 use std::fmt::{Display, Write};
 
 /// Formats a list of values in a form that [Desmos](https://desmos.com/calculator) will accept as
@@ -44,4 +46,28 @@ pub fn to_desmos_list(variable_name: &str, list: &[impl Display]) -> String {
     str.push(']');
 
     str
+}
+
+/// Wrapper function for [`to_desmos_list`] to display pairs of [`Float`]s.
+///
+/// See [`to_desmos_list`] for more details.
+///
+/// # Examples
+///
+/// ```rust
+/// # use sciutil::{display::pairs_to_desmos_list, units::Float};
+/// #
+/// assert_eq!(
+///     pairs_to_desmos_list("l", &[(2.0, 5.0), (3.0, 6.0), (5.0, 10.0)]),
+///     "l = [(2,5),(3,6),(5,10)]"
+/// );
+/// ```
+#[must_use]
+pub fn pairs_to_desmos_list<T: Float, F: Float>(variable_name: &str, list: &[(T, F)]) -> String {
+    let list = list
+        .iter()
+        .map(|(t, f)| format!("({},{})", t.get(), f.get()))
+        .collect::<Vec<_>>();
+
+    to_desmos_list(variable_name, list.as_slice())
 }

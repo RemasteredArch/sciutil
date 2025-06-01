@@ -52,9 +52,18 @@ typst-doc:
         typst compile "$file" "./out/$(basename "$file" '.typ').pdf"; \
     done
 
-watch:
-    watchexec --quiet --clear --watch './src/' -- \
-        'cargo doc && cargo t --quiet'
+watch example='none':
+    #!/bin/sh
+    # Print lines as they're executed, error when accessing unset variables, and exit on any error.
+    set -exu
+
+    if [ "{{example}}" = 'none' ]; then
+        watchexec --quiet --clear --watch './src/' -- \
+            'cargo doc && cargo t --quiet'
+    else
+        watchexec --quiet --clear --watch './src/' --watch './examples/' -- \
+            'cargo run --example {{example}}'
+    fi
 
 ci: ci-rust ci-typst ci-yaml ci-toml ci-markdown
 

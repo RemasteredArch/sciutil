@@ -320,6 +320,7 @@ float_types![
     (Centimeter, "cm",),
     (Millimeter, "mm",),
     (Micrometer, "μm",),
+    (Degree, "°",),
 ];
 
 conversions![
