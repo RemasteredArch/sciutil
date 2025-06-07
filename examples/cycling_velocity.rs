@@ -14,6 +14,8 @@ use gpx::{TrackSegment, Velocity};
 
 use sciutil::units::{Degrees, Float, Seconds};
 
+/// The contents of an example GPX file, compliant with the requirements for
+/// [`TrackSegment::parse_first_in_file`].
 const WITH_TIME_GPX: &str = include_str!("./data/with_time.gpx");
 
 fn main() {
@@ -34,6 +36,6 @@ fn main() {
 
 {position_desmos}
 
-{velocity_desmos}"
+{velocity_desmos}",
     );
 }
