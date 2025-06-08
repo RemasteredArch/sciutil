@@ -15,6 +15,7 @@
 mod macros;
 
 pub mod math;
+mod symbol_tree;
 
 use std::{fmt::Display, marker::PhantomData};
 
