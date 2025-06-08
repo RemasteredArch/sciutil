@@ -224,3 +224,54 @@ macro_rules! conversions {
         }
     };
 }
+
+/// Generate an implementation of [`super::Float`] for a type, including an implementation of
+/// [`From<f64>`] for the type and vice versa.
+///
+/// Takes in an `impl<(generics)> Float for Struct<(generics)> { ... }`, where the generics are
+/// optional, but must include the parentheses if you do use them. The body of the implementation is
+/// a normal implementation for [`super::Float::new`] and [`super::Float::get`] (in that order). The
+/// constants associated with [`super::Float`] are all set to [`None`].
+macro_rules! FloatImpl {
+    {
+        impl $(<( $($generics_def:tt)+ )>)? Float for $struct:ident $(<( $($generics_use:tt)+ )>)? {
+            $(#[$new_attribute:meta])*
+            fn new($value:ident: f64) -> Self {
+                $($constructor:tt)+
+            }
+
+            $(#[$get_attribute:meta])*
+            fn get(&$self:ident) -> f64 {
+                $($getter:tt)+
+            }
+        }
+    } => {
+        impl $(< $($generics_def)+ >)? From<f64> for $struct $(< $($generics_use)+ >)? {
+            fn from(value: f64) -> Self {
+                Self::new(value)
+            }
+        }
+
+        impl $(< $($generics_def)+ >)? From< $struct $(< $($generics_use)+ >)? > for f64 {
+            fn from(value: $struct $(< $($generics_use)+ >)?) -> Self {
+                value.get()
+            }
+        }
+
+        impl $(< $($generics_def)+ >)? Float for $struct $(< $($generics_use)+ >)? {
+            $(#[$new_attribute])*
+            fn new($value: f64) -> Self {
+                $($constructor)+
+            }
+
+            $(#[$get_attribute])*
+            fn get(&$self) -> f64 {
+                $($getter)+
+            }
+
+            const NAME_SINGLE: Option<&str> = None;
+            const NAME_PLURAL: Option<&str> = None;
+            const SYMBOL: Option<&str> = None;
+        }
+    };
+}

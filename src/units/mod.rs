@@ -14,6 +14,8 @@
 #[macro_use]
 mod macros;
 
+pub mod math;
+
 use std::{fmt::Display, marker::PhantomData};
 
 use paste::paste;

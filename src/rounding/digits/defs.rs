@@ -8,12 +8,14 @@
 
 //! `defs`: Implementations for auxiliary types for [`super`].
 //!
-//! Everything that isn't [`super::Digits`] is kept out of [`super`] to keep it from being too long
-//! (but publicly reexported so that the API remains flat).
+//! Everything that isn't [`Digits`] is kept out of [`super`] to keep it from being too long (but
+//! publicly reexported so that the API remains flat).
+
+use crate::{err::InvalidDigitError, units::Float};
+
+use super::Digits;
 
 use std::{fmt::Display, num::NonZeroIsize};
-
-use crate::err::InvalidDigitError;
 
 #[cfg(any(feature = "serde", test))]
 use serde::{Deserialize, Serialize};
@@ -301,3 +303,50 @@ pub type SplitFloat = (Sign, Box<[Digit]>, Box<[Digit]>);
 /// ... -4 -1 1  4 ...
 /// ```
 pub type Place = NonZeroIsize;
+
+/// The absolute uncertainty in that value.
+pub struct UncertainDigits<F: Float> {
+    /// The measured value.
+    value: Digits<F>,
+
+    /// The absolute uncertainty in that value.
+    uncertainty: Digits<F>,
+}
+
+// Perhaps there should be an `Uncertain` trait to cover both [`UncertainDigits`] and
+// [`sciutil::units::UncertainFloat`]?
+impl<F: Float> UncertainDigits<F> {
+    /// Construct a new instance of [`Self`].
+    #[must_use]
+    pub const fn new(value: Digits<F>, uncertainty: Digits<F>) -> Self {
+        Self { value, uncertainty }
+    }
+
+    /// Returns the measured value.
+    #[must_use]
+    pub const fn value(&self) -> &Digits<F> {
+        &self.value
+    }
+
+    /// Returns the absolute uncertainty.
+    #[must_use]
+    pub const fn uncertainty(&self) -> &Digits<F> {
+        &self.uncertainty
+    }
+
+    // Requires that I implement math for [`Digits`].
+    //
+    // ```rust
+    // /// Returns the minimum possible value.
+    // #[must_use]
+    // pub fn min(&self) -> Digits<F> {
+    //     self.value - self.uncertainty.abs()
+    // }
+    //
+    // /// Returns the maximum possible value.
+    // #[must_use]
+    // pub fn max(&self) -> Digits<F> {
+    //     self.value + self.uncertainty.abs()
+    // }
+    // ```
+}
