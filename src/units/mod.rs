@@ -14,8 +14,8 @@
 #[macro_use]
 mod macros;
 
+pub mod composition;
 pub mod math;
-mod symbol_tree;
 
 use std::{fmt::Display, marker::PhantomData};
 
