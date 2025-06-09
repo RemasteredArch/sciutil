@@ -6,6 +6,9 @@
 # copy of the Mozilla Public License was not distributed with this file, You can obtain one at
 # <https://mozilla.org/MPL/2.0/>.
 
+# Allow unstable Just features, in this case used for `[script]`.
+set unstable
+
 default: check test rust-doc
 
 build:
@@ -14,8 +17,8 @@ build:
 test:
     cargo test
 
+[script("/bin/sh")]
 bench once='false':
-    #!/bin/sh
     # Print lines as they're executed, error when accessing unset variables, and exit on any error.
     set -exu
 
@@ -52,8 +55,8 @@ typst-doc:
         typst compile "$file" "./out/$(basename "$file" '.typ').pdf"; \
     done
 
+[script("/bin/sh")]
 watch example='none':
-    #!/bin/sh
     # Print lines as they're executed, error when accessing unset variables, and exit on any error.
     set -exu
 
@@ -69,8 +72,8 @@ ci: ci-rust ci-typst ci-yaml ci-toml ci-markdown
 
 # This is also replicated in `/.github/workflows/rust.yml`. Don't forget to update that (or ping
 # somebody else to do so)!
+[script("/bin/sh")]
 ci-rust:
-    #!/bin/sh
     # Print lines as they're executed, error when accessing unset variables, and exit on any error.
     set -exu
     # Elevate all warnings to errors.
