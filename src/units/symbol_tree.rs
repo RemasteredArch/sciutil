@@ -43,6 +43,27 @@ pub trait Multiplied {
     /// contained [`Unit`]s.
     #[must_use]
     fn flatten_units(&self) -> Vec<&dyn Unit>;
+
+    /// Flattened the nested structure of [`Self`] to return the symbol for the entire composite
+    /// unit represented by [`Self`].
+    ///
+    /// The default implementation uses [`Self::flatten_units`] to construct a space-separated list
+    /// of outputs from [`Unit::symbol`] to represent their multiplication.
+    #[must_use]
+    fn flatten_symbols(&self) -> String {
+        let units = self.flatten_units();
+        // Will have at least one bytes per symbol, then one byte per symbol for the separating
+        // space, then one less byte because there is no trailing space.
+        let mut str = String::with_capacity(units.len() * 2 - 1);
+
+        for unit in units {
+            str.push_str(&unit.symbol());
+            str.push(' ');
+        }
+        let _ = str.pop(); // Remove the trailing space.
+
+        str
+    }
 }
 
 /// An empty [`Multiplied`] implementation, used as the tail of a [`UnitList`] to terminate it.
@@ -152,6 +173,18 @@ FloatImpl! {
     }
 }
 
+pub struct Power<T: Unit, const P: i32>(T);
+
+impl<T: Unit, const P: i32> Unit for Power<T, P> {
+    fn symbol(&self) -> String {
+        if P.is_positive() {
+            format!("{}^{P}", self.0.symbol())
+        } else {
+            format!("{}^({P})", self.0.symbol())
+        }
+    }
+}
+
 // Dummy implementation for testing.
 #[expect(dead_code, reason = "used only for testing type sizes")]
 #[derive(Copy, Clone)]
@@ -194,8 +227,9 @@ fn func() {
     let list = UnitList::new(Seconds, UnitListNull)
         .prepend(Seconds)
         .prepend(Seconds)
+        .prepend(Power::<_, 2>(Seconds))
         .prepend(Seconds)
-        .prepend(Seconds)
+        .prepend(Power::<_, -2>(Seconds))
         .prepend(Seconds)
         .prepend(Seconds)
         .prepend(Seconds)
@@ -210,6 +244,10 @@ fn func() {
     for unit in flattened {
         println!("{}", unit.symbol());
     }
+    assert_eq!(
+        list.flatten_symbols(),
+        "s s s s^2 s s^(-2) s s s s s s s s s"
+    );
 
     let valued = ValuedUnit::from_unit_list(0.5, list);
     assert_eq!(size_of_val(&valued), size_of::<f64>());
