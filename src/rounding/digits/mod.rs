@@ -21,10 +21,7 @@ use std::{cmp::Ordering, fmt::Display, marker::PhantomData, num::FpCategory};
 pub use defs::*;
 pub use err::*;
 
-use crate::{
-    err::InvalidFloatError,
-    units::{Float, FloatDisplay},
-};
+use crate::{err::InvalidFloatError, units::Float};
 
 #[cfg(any(feature = "serde", test))]
 use serde::{Deserialize, Deserializer, Serialize};
@@ -119,11 +116,15 @@ impl<F: Float> Digits<F> {
     /// ```rust
     /// # use sciutil::{
     /// #     rounding::digits::Digits,
-    /// #     units::{Float, FloatDisplay, Seconds},
+    /// #     units::{Float, Seconds, composition::Valued},
     /// # };
     /// #
     /// assert_eq!(Digits::<f64>::new(&1024.0).to_string(), "1024");
-    /// assert_eq!(Digits::<Seconds>::new(&Seconds::new(1024.05)).to_string_with_units(), "1024.05 s");
+    /// // Units are not currently preserved.
+    /// assert_eq!(
+    ///     Digits::<Valued<f64, Seconds>>::new(&Valued::new(1024.05)).to_string(),
+    ///     "1024.05",
+    /// );
     /// assert_eq!(Digits::<f64>::new(&0.0).to_string(), "0");
     /// assert_eq!(Digits::<f64>::new(&-0.0).to_string(), "-0");
     /// assert_eq!(Digits::<f64>::new(&0.03).to_string(), "0.03");
@@ -790,13 +791,14 @@ impl<F: Float> Digits<F> {
     /// ```rust
     /// # use sciutil::{
     /// #     rounding::digits::Digits,
-    /// #     units::{Float, FloatDisplay, Seconds},
+    /// #     units::{Float, Seconds, composition::Valued},
     /// # };
     /// #
     /// let a: Digits<f64> = Digits::<f64>::new(&123.0);
-    /// let b: Digits<Seconds> = a.cast();
+    /// let b: Digits<Valued<f64, Seconds>> = a.cast();
     ///
-    /// assert_eq!(b.to_string_with_units(), "123 s");
+    /// // However, units are not currently preserved.
+    /// assert_eq!(b.to_string(), "123");
     /// ```
     #[must_use]
     pub fn cast<T: Float>(self) -> Digits<T> {
@@ -891,16 +893,6 @@ impl<F: Float> Display for Digits<F> {
         }
 
         write!(f, "{str}")
-    }
-}
-
-impl<F: FloatDisplay> Digits<F> {
-    #[must_use]
-    pub fn to_string_with_units(&self) -> String {
-        let mut str = self.to_string();
-        str.push(' ');
-        str.push_str(&F::symbol());
-        str
     }
 }
 

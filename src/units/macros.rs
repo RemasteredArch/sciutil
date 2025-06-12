@@ -7,7 +7,7 @@
 // <https://mozilla.org/MPL/2.0/>.
 
 #[cfg(doc)]
-use super::{Float, FloatDisplay};
+use super::Float;
 
 /// Define a list of standard [`Float`] and [`FloatDisplay`] types. Takes a list of
 /// tuples, holding either:
@@ -40,8 +40,7 @@ macro_rules! float_types {
         mod _float_types_test {
             #[test]
             fn check_send_sync() {
-                fn assert_send_sync<F: Send + Sync>() {}
-                fn assert_float_display<F:  super::Float + super::FloatDisplay>() {}
+                fn assert_send_sync<T: Send + Sync>() {}
 
                 $( float_types!(@test $unit, $( $rest, )+); )+
             }
@@ -52,12 +51,11 @@ macro_rules! float_types {
     (@test $unit:ident, $symbol:expr, $( $rest:tt, )+) => {
         ::paste::paste! {
             assert_send_sync::<super::$unit>();
-            assert_send_sync::<super::Per<super::$unit, super::$unit, 1>>();
+            assert_send_sync::<
+                super::composition::UnitList<super::$unit, super::composition::UnitListNull>,
+            >();
 
-            assert_float_display::<super::$unit>();
-            assert_float_display::<super::Per<super::$unit, super::$unit, 1>>();
-
-            assert_send_sync::<super::UncertainFloat<super::$unit>>();
+            assert_eq!(size_of_val(&super::composition::Valued::from_unit(0.5, super::$unit)), size_of::<f64>());
         }
     };
 
@@ -69,7 +67,6 @@ macro_rules! float_types {
         }
     };
 
-
     // Matches on declarations that just have a unit identifier and a symbol, such that the
     // identifier can have an `'s'` appended to form the type's identifier, be set to lowercase to
     // form the unit's name, and be set to lowercase and an `'s'` appended to form the unit's plural
@@ -78,7 +75,7 @@ macro_rules! float_types {
         paste! {
             float_types!(
                 @
-                #[doc = "Represents " $unit_single:lower "s as a floating-point value."]
+                #[doc = "Represents the unit of " $unit_single:lower "s."]
                 $(#[$attribute])*
                 [<$unit_single s>],
                 $symbol,
@@ -91,52 +88,13 @@ macro_rules! float_types {
     (@ $(#[$attribute:meta])* $unit:ident, $symbol:expr, $name_single:expr, $name_plural:expr,) => {
         $(#[$attribute])*
         #[cfg_attr(any(feature = "serde", test), derive(Deserialize, Serialize))]
-        #[derive(Copy, Clone, PartialEq, PartialOrd, Debug, Default)]
-        pub struct $unit(f64);
+        #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Debug, Default)] // TODO: probably
+                                                                               // remove Eq and Ord
+        pub struct $unit;
 
-        impl Float for $unit {
-            const SYMBOL: Option<&str> = Some($symbol);
-            const NAME_SINGLE: Option<&str> = Some($name_single);
-            const NAME_PLURAL: Option<&str> = Some($name_plural);
-
-            fn new(value: f64) -> Self {
-                Self(value)
-            }
-
-            fn get(&self) -> f64 {
-                self.0
-            }
-        }
-
-        impl From<f64> for $unit {
-            fn from(value: f64) -> Self {
-                Self::new(value)
-            }
-        }
-
-        impl From<$unit> for f64 {
-            fn from(value: $unit) -> Self {
-                value.get()
-            }
-        }
-
-        impl FloatDisplay for $unit {
-            fn symbol() -> String {
+        impl Unit for $unit {
+            fn symbol(&self) -> String {
                 $symbol.to_string()
-            }
-
-            fn name_single() -> String {
-                $name_single.to_string()
-            }
-
-            fn name_plural() -> String {
-                $name_plural.to_string()
-            }
-        }
-
-        impl ::std::fmt::Display for $unit {
-            fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> std::fmt::Result {
-                write!(f, "{} {}", self.get(), $name_plural)
             }
         }
     };
@@ -215,9 +173,9 @@ macro_rules! conversions {
                 pub const [<TO_ $to:snake:upper>]: f64 = $($factor)+;
             }
 
-            impl From<$from> for $to {
+            impl From<composition::Valued<f64, $from>> for composition::Valued<f64, $to> {
                 #[inline]
-                fn from(value: $from) -> Self {
+                fn from(value: composition::Valued<f64, $from>) -> Self {
                     Self::new(value.get() * $from::[<TO_ $to:snake:upper>])
                 }
             }
@@ -248,7 +206,7 @@ macro_rules! FloatImpl {
     } => {
         impl $(< $($generics_def)+ >)? From<f64> for $struct $(< $($generics_use)+ >)? {
             fn from(value: f64) -> Self {
-                Self::new(value)
+                Float::new(value)
             }
         }
 
@@ -268,10 +226,6 @@ macro_rules! FloatImpl {
             fn get(&$self) -> f64 {
                 $($getter)+
             }
-
-            const NAME_SINGLE: Option<&str> = None;
-            const NAME_PLURAL: Option<&str> = None;
-            const SYMBOL: Option<&str> = None;
         }
     };
 }

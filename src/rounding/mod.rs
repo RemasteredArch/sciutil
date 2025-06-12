@@ -29,29 +29,25 @@ use crate::units::{Float, UncertainFloat};
 /// ```rust
 /// # use sciutil::{
 /// #     rounding,
-/// #     units::{Float, Seconds, UncertainFloat},
+/// #     units::{Float, Seconds, UncertainFloat, composition::Valued},
 /// # };
 /// #
-/// // Units are included if the [`UncertainFloat`] has them:
-/// assert_eq!(
-///     rounding::round_with_uncertainty(&UncertainFloat::new(
-///         Seconds::new(1_024.051_123_125_5),
-///         Seconds::new(0.015_555_312)
-///     )),
-///     "1024.051 s ± 0.016 s",
-/// );
-///
-/// // Units are omitted if they aren't present, and the value will not get extra zeros if it ends
-/// // before the uncertainty.
 /// assert_eq!(
 ///     rounding::round_with_uncertainty(&UncertainFloat::new(1_024.05, 0.015_555_312)),
 ///     "1024.05 ± 0.016",
 /// );
+///
+/// // Units do not carry through yet:
+/// assert_eq!(
+///     rounding::round_with_uncertainty(&UncertainFloat::new(
+///         Valued::<f64, Seconds>::new(1_024.051_123_125_5),
+///         Valued::<f64, Seconds>::new(0.015_555_312),
+///     )),
+///     "1024.051 ± 0.016",
+/// );
 /// ```
 #[must_use]
 pub fn round_with_uncertainty<F: Float>(with_uncertainty: &UncertainFloat<F>) -> String {
-    let unit = F::SYMBOL.map_or(String::new(), |u| format!(" {u}"));
-
     let value = Digits::<F>::new(with_uncertainty.value());
     let uncertainty = Digits::<F>::new(with_uncertainty.uncertainty());
 
@@ -59,5 +55,5 @@ pub fn round_with_uncertainty<F: Float>(with_uncertainty: &UncertainFloat<F>) ->
     let uncertainty = uncertainty.round_to_place(last_place);
     let value = value.round_to_place(last_place);
 
-    format!("{value}{unit} ± {uncertainty}{unit}")
+    format!("{value} ± {uncertainty}")
 }

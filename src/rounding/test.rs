@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     err::InvalidDigitError,
-    units::{Float, Seconds},
+    units::{Float, Seconds, composition::Valued},
 };
 
 use super::digits::{Digit, DigitSlice, Digits, Sign};
@@ -423,7 +423,7 @@ fn digits_de_re_serialize() {
 
     serialize_and_deserialize(
         &mut String::new(),
-        &Digits::<Seconds>::new(&Seconds::new(-0.0)),
+        &Digits::<Valued<f64, Seconds>>::new(&Valued::new(-0.0)),
         r#"{"sign":"Negative","dot":1,"digits":["Zero"]}"#,
     );
 }

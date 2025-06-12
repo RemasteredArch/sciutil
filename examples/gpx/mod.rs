@@ -8,14 +8,17 @@
 
 use std::io::{BufRead, BufReader, Read};
 
-use sciutil::units::{Degrees, Float, Meters, Per, Seconds};
+use sciutil::units::{
+    Degrees, Float, Meters, Seconds,
+    composition::{Power, UnitList, UnitListNull, Valued},
+};
 use time::UtcDateTime;
 
 /// Represents coordinates on a globe.
 #[derive(Copy, Clone, Debug, Default)]
 pub struct Coordinates {
-    latitude: Degrees,
-    longitude: Degrees,
+    latitude: Valued<f64, Degrees>,
+    longitude: Valued<f64, Degrees>,
 }
 
 impl Coordinates {
@@ -31,7 +34,7 @@ impl Coordinates {
     /// Get the [Euclidean distance](https://en.wikipedia.org/wiki/Euclidean_distance) from `self`
     /// to `others`.
     #[must_use]
-    pub fn distance(&self, other: &Self) -> Degrees {
+    pub fn distance(&self, other: &Self) -> Valued<f64, Degrees> {
         (self.latitude.get() - other.latitude.get())
             .hypot(self.longitude.get() - other.longitude.get())
             .into()
@@ -42,7 +45,7 @@ impl Coordinates {
 ///
 /// [degrees]: [`Degrees`]
 /// [second]: [`Seconds`]
-pub type Velocity = Per<Degrees, Seconds, 1>;
+pub type Velocity = Valued<f64, UnitList<Degrees, UnitList<Power<Seconds, -1>, UnitListNull>>>;
 
 /// Represents a track point from a GPX file.
 ///
@@ -57,7 +60,7 @@ pub type Velocity = Per<Degrees, Seconds, 1>;
 #[derive(Clone, Debug)]
 pub struct TrackPoint {
     coordinates: Coordinates,
-    elevation: Meters,
+    elevation: Valued<f64, Meters>,
     time: UtcDateTime,
 }
 
@@ -65,7 +68,7 @@ impl Default for TrackPoint {
     fn default() -> Self {
         Self {
             coordinates: Coordinates::default(),
-            elevation: Meters::default(),
+            elevation: Valued::default(),
             time: UtcDateTime::UNIX_EPOCH,
         }
     }
@@ -88,7 +91,7 @@ impl TrackSegment {
     }
 
     /// Returns an iterator over the elevation of each [`TrackPoint`], in [`Meters`].
-    pub fn elevation(&self) -> impl Iterator<Item = Meters> {
+    pub fn elevation(&self) -> impl Iterator<Item = Valued<f64, Meters>> {
         self.iter().map(|p| p.elevation)
     }
 
@@ -127,7 +130,7 @@ impl TrackSegment {
     /// that will record as you having walked quite far, even though your _displacement_ is (close
     /// to) zero since you began.
     #[must_use]
-    pub fn degrees_traveled_by_seconds(&self) -> Vec<(Seconds, Degrees)> {
+    pub fn degrees_traveled_by_seconds(&self) -> Vec<(Valued<f64, Seconds>, Valued<f64, Degrees>)> {
         if self.is_empty() {
             return Vec::new();
         }
@@ -137,7 +140,7 @@ impl TrackSegment {
         let mut prev_point = self.0.first().unwrap();
 
         let starting_time = prev_point.time;
-        list.push((Seconds::new(0.0), Degrees::new(0.0)));
+        list.push((Valued::new(0.0), Valued::new(0.0)));
 
         let mut total_distance = 0.0;
 
@@ -145,7 +148,7 @@ impl TrackSegment {
             total_distance += prev_point.coordinates.distance(&point.coordinates).get();
 
             list.push((
-                Seconds::new((point.time - starting_time).as_seconds_f64()),
+                Valued::new((point.time - starting_time).as_seconds_f64()),
                 total_distance.into(),
             ));
 
