@@ -78,6 +78,7 @@ ci-rust:
     set -exu
     # Elevate all warnings to errors.
     export RUSTFLAGS='-D warnings'
+    export RUSTDOCFLAGS='-D warnings'
 
     # Build code normally.
     cargo build --verbose \
@@ -86,12 +87,12 @@ ci-rust:
     # Test code normally.
     #
     # As of right now, regular tests do include Serde tests, so no need for a `--all-features` run.
-    cargo test --verbose
+    cargo test --verbose --all-targets\
 
     # Lint code.
-    cargo clippy --verbose
+    cargo clippy --verbose --all-targets
     # Lint code with all features enabled.
-    cargo clippy --verbose \
+    cargo clippy --verbose --all-targets \
         --all-features
 
     # Check that code is properly formatted.

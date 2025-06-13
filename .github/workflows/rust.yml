@@ -23,6 +23,10 @@ on:
 env:
     # Equivalent to attaching `--verbose` to every `cargo` command.
     CARGO_TERM_VERBOSE: true
+    # Elevate all warnings in to errors for Rustdoc.
+    #
+    # `RUSTFLAGS='-D warnings' is already done by `actions-rust-lang/setup-rust-toolchain@v1`.
+    RUSTDOCFLAGS: "-D warnings"
 
 # These jobs are based on `ci-just` in `/justfile`. Don't forget to update that (or ping somebody
 # else to do so)!
@@ -48,7 +52,7 @@ jobs:
               # As of right now, regular tests do include Serde tests, so no need for a
               # `--all-features` run.
             - name: Run tests
-              run: cargo test
+              run: cargo test --all-targets
 
     lint:
         runs-on: ubuntu-24.04
@@ -65,9 +69,9 @@ jobs:
             - name: Lint code
               run: |
                 # Lint code.
-                cargo clippy
+                cargo clippy --all-targets
                 # Lint code with all features enabled.
-                cargo clippy --all-features
+                cargo clippy --all-targets --all-features
 
     doc:
         runs-on: ubuntu-24.04
